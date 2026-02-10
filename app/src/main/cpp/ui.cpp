@@ -5,10 +5,27 @@
 
 namespace BlockEater {
 
+// Define static theme colors array
+Theme UIManager::themes[UIManager::NUM_THEMES] = {
+    // Default Blue Theme
+    {{100, 200, 255, 255}, {50, 100, 150, 255}, {255, 200, 50, 255}, {20, 20, 40, 255}, {255, 255, 255, 255}, "Blue"},
+    // Dark Theme
+    {{80, 80, 100, 255}, {40, 40, 60, 255}, {150, 150, 180, 255}, {15, 15, 25, 255}, {200, 200, 220, 255}, "Dark"},
+    // Green Theme
+    {{100, 220, 120, 255}, {50, 150, 80, 255}, {255, 220, 100, 255}, {20, 35, 25, 255}, {255, 255, 255, 255}, "Green"},
+    // Purple Theme
+    {{180, 120, 255, 255}, {120, 60, 180, 255}, {255, 180, 100, 255}, {30, 20, 45, 255}, {255, 255, 255, 255}, "Purple"},
+    // Red Theme
+    {{255, 120, 100, 255}, {180, 60, 50, 255}, {255, 220, 50, 255}, {40, 20, 20, 255}, {255, 255, 255, 255}, "Red"}
+};
+
 UIManager::UIManager()
     : menuAnimation(0)
     , hudAnimation(0)
     , transitionAlpha(0)
+    , language(Language::ENGLISH)
+    , currentThemeIndex(0)
+    , currentTheme(&themes[0])
     , primaryColor{100, 200, 255, 255}
     , secondaryColor{50, 100, 150, 255}
     , accentColor{255, 200, 50, 255}
@@ -174,7 +191,7 @@ void UIManager::drawMainMenu() {
     float alpha = menuAnimation;
 
     // Title
-    const char* title = "BLOCK EATER";
+    const char* title = getText("BLOCK EATER", "方块吞噬者");
     int titleFontSize = 60;
     int titleWidth = MeasureText(title, titleFontSize);
 
@@ -188,18 +205,18 @@ void UIManager::drawMainMenu() {
     int gap = 80;
 
     drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, startY, buttonWidth, buttonHeight,
-                   "PLAY ENDLESS", false, false);
+                   getText("PLAY ENDLESS", "无尽模式"), false, false);
     drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, startY + gap, buttonWidth, buttonHeight,
-                   "LEVEL MODE", false, false);
+                   getText("LEVEL MODE", "关卡模式"), false, false);
     drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, startY + gap * 2, buttonWidth, buttonHeight,
-                   "TIME CHALLENGE", false, false);
+                   getText("TIME CHALLENGE", "时间挑战"), false, false);
     drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, startY + gap * 3, buttonWidth, buttonHeight,
-                   "SETTINGS", false, false);
+                   getText("SETTINGS", "设置"), false, false);
     drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, startY + gap * 4, buttonWidth, buttonHeight,
-                   "QUIT", false, false);
+                   getText("QUIT", "退出"), false, false);
 
     // Instructions
-    const char* instructions = "Touch controls enabled";
+    const char* instructions = getText("Touch controls enabled", "触控已启用");
     int instrWidth = MeasureText(instructions, 16);
     DrawText(instructions, SCREEN_WIDTH / 2 - instrWidth / 2, SCREEN_HEIGHT - 50, 16, {150, 150, 150, 255});
 }
@@ -209,7 +226,7 @@ void UIManager::drawPauseMenu() {
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, {0, 0, 0, 180});
 
     // Pause text
-    const char* text = "PAUSED";
+    const char* text = getText("PAUSED", "暂停");
     int fontSize = 50;
     int textWidth = MeasureText(text, fontSize);
     DrawText(text, SCREEN_WIDTH / 2 - textWidth / 2, 150, fontSize, WHITE);
@@ -219,9 +236,9 @@ void UIManager::drawPauseMenu() {
     int buttonHeight = 50;
 
     drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, 250, buttonWidth, buttonHeight,
-                   "RESUME", false, false);
+                   getText("RESUME", "继续"), false, false);
     drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, 320, buttonWidth, buttonHeight,
-                   "QUIT", false, false);
+                   getText("QUIT TO MENU", "退出到菜单"), false, false);
 }
 
 void UIManager::drawGameOverMenu(int score, int level) {
@@ -229,21 +246,29 @@ void UIManager::drawGameOverMenu(int score, int level) {
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, {50, 0, 0, 200});
 
     // Game Over text
-    const char* text = "GAME OVER";
+    const char* text = getText("GAME OVER", "游戏结束");
     int fontSize = 60;
     int textWidth = MeasureText(text, fontSize);
     DrawText(text, SCREEN_WIDTH / 2 - textWidth / 2, 100, fontSize, {255, 50, 50, 255});
 
     // Score
     char scoreText[64];
-    sprintf(scoreText, "Final Score: %d", score);
+    if (language == Language::CHINESE) {
+        sprintf(scoreText, "最终得分: %d", score);
+    } else {
+        sprintf(scoreText, "Final Score: %d", score);
+    }
     int scoreFontSize = 30;
     int scoreWidth = MeasureText(scoreText, scoreFontSize);
     DrawText(scoreText, SCREEN_WIDTH / 2 - scoreWidth / 2, 200, scoreFontSize, WHITE);
 
     // Level reached
     char levelText[64];
-    sprintf(levelText, "Level Reached: %d", level);
+    if (language == Language::CHINESE) {
+        sprintf(levelText, "达到等级: %d", level);
+    } else {
+        sprintf(levelText, "Level Reached: %d", level);
+    }
     int levelWidth = MeasureText(levelText, scoreFontSize);
     DrawText(levelText, SCREEN_WIDTH / 2 - levelWidth / 2, 250, scoreFontSize, {255, 200, 50, 255});
 
@@ -252,16 +277,16 @@ void UIManager::drawGameOverMenu(int score, int level) {
     int buttonHeight = 50;
 
     drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, 350, buttonWidth, buttonHeight,
-                   "TRY AGAIN", false, false);
+                   getText("TRY AGAIN", "再试一次"), false, false);
     drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, 420, buttonWidth, buttonHeight,
-                   "MAIN MENU", false, false);
+                   getText("MAIN MENU", "主菜单"), false, false);
 }
 
 void UIManager::drawLevelSelect() {
-    const char* title = "SELECT LEVEL";
+    const char* title = getText("SELECT LEVEL", "选择关卡");
     int fontSize = 40;
     int textWidth = MeasureText(title, fontSize);
-    DrawText(title, SCREEN_WIDTH / 2 - textWidth / 2, 50, fontSize, WHITE);
+    DrawText(title, SCREEN_WIDTH / 2 - textWidth / 2, 50, fontSize, currentTheme->text);
 
     // Level buttons (10 levels in 2 rows)
     int buttonSize = 80;
@@ -279,34 +304,47 @@ void UIManager::drawLevelSelect() {
 
         drawPixelButton(x, y, buttonSize, buttonSize, levelText, false, false);
     }
+
+    // Back button
+    drawPixelButton(SCREEN_WIDTH / 2 - 100, 500, 200, 50, getText("BACK", "返回"), false, false);
 }
 
 void UIManager::drawSettings() {
-    const char* title = "SETTINGS";
+    const char* title = getText("SETTINGS", "设置");
     int fontSize = 40;
     int textWidth = MeasureText(title, fontSize);
-    DrawText(title, SCREEN_WIDTH / 2 - textWidth / 2, 50, fontSize, WHITE);
+    DrawText(title, SCREEN_WIDTH / 2 - textWidth / 2, 50, fontSize, currentTheme->text);
+
+    // Language setting
+    DrawText(getText("Language:", "语言:"), 200, 130, 24, currentTheme->text);
+    const char* langText = (language == Language::ENGLISH) ? "English" : "中文";
+    drawPixelButton(500, 120, 200, 50, langText, false, false);
+
+    // Theme setting
+    DrawText(getText("Theme:", "主题:"), 200, 200, 24, currentTheme->text);
+    drawPixelButton(500, 190, 200, 50, currentTheme->name, false, false);
+    drawPixelButton(720, 190, 100, 50, getText("Next", "下一个"), false, false);
 
     // Control mode setting
-    DrawText("Control Mode:", 200, 150, 24, WHITE);
-    drawPixelButton(500, 140, 200, 50, "Virtual Joystick", false, false);
-    drawPixelButton(720, 140, 200, 50, "Touch Follow", false, false);
+    DrawText(getText("Control Mode:", "控制模式:"), 200, 270, 24, currentTheme->text);
+    drawPixelButton(500, 260, 200, 50, getText("Virtual Joystick", "虚拟摇杆"), false, false);
+    drawPixelButton(720, 260, 200, 50, getText("Touch Follow", "触摸跟随"), false, false);
 
     // Volume settings
-    DrawText("Master Volume:", 200, 220, 24, WHITE);
-    drawPixelRect(500, 230, 300, 20, {100, 100, 100, 255});
-    drawPixelRect(500, 230, 200, 20, {50, 200, 50, 255});
-
-    DrawText("SFX Volume:", 200, 280, 24, WHITE);
-    drawPixelRect(500, 290, 300, 20, {100, 100, 100, 255});
-    drawPixelRect(500, 290, 250, 20, {50, 150, 255, 255});
-
-    DrawText("Music Volume:", 200, 340, 24, WHITE);
+    DrawText(getText("Master Volume:", "主音量:"), 200, 340, 24, currentTheme->text);
     drawPixelRect(500, 350, 300, 20, {100, 100, 100, 255});
-    drawPixelRect(500, 350, 150, 20, {255, 150, 50, 255});
+    drawPixelRect(500, 350, 200, 20, {50, 200, 50, 255});
+
+    DrawText(getText("SFX Volume:", "音效音量:"), 200, 390, 24, currentTheme->text);
+    drawPixelRect(500, 400, 300, 20, {100, 100, 100, 255});
+    drawPixelRect(500, 400, 250, 20, {50, 150, 255, 255});
+
+    DrawText(getText("Music Volume:", "音乐音量:"), 200, 440, 24, currentTheme->text);
+    drawPixelRect(500, 450, 300, 20, {100, 100, 100, 255});
+    drawPixelRect(500, 450, 150, 20, {255, 150, 50, 255});
 
     // Back button
-    drawPixelButton(SCREEN_WIDTH / 2 - 100, 500, 200, 50, "BACK", false, false);
+    drawPixelButton(SCREEN_WIDTH / 2 - 100, 550, 200, 50, getText("BACK", "返回"), false, false);
 }
 
 bool UIManager::isButtonClicked(int x, int y, int width, int height) {
@@ -353,6 +391,20 @@ void UIManager::drawPixelRect(int x, int y, int width, int height, Color color, 
 
 void UIManager::drawPixelText(const char* text, int x, int y, int fontSize, Color color) {
     DrawText(text, x, y, fontSize, color);
+}
+
+const char* UIManager::getText(const char* english, const char* chinese) {
+    return (language == Language::CHINESE) ? chinese : english;
+}
+
+void UIManager::cycleTheme() {
+    currentThemeIndex = (currentThemeIndex + 1) % NUM_THEMES;
+    currentTheme = const_cast<Theme*>(&themes[currentThemeIndex]);
+    // Update old color variables for compatibility
+    primaryColor = currentTheme->primary;
+    secondaryColor = currentTheme->secondary;
+    accentColor = currentTheme->accent;
+    backgroundColor = currentTheme->background;
 }
 
 } // namespace BlockEater

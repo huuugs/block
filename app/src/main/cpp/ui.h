@@ -7,6 +7,22 @@
 
 namespace BlockEater {
 
+// Language support
+enum class Language {
+    ENGLISH,
+    CHINESE
+};
+
+// Theme colors
+struct Theme {
+    Color primary;
+    Color secondary;
+    Color accent;
+    Color background;
+    Color text;
+    const char* name;
+};
+
 class UIManager {
 public:
     UIManager();
@@ -15,6 +31,15 @@ public:
     void update(float dt);
     void draw(GameState state, GameMode mode);
     void resetTransition() { transitionAlpha = 0.0f; }
+
+    // Language and theme
+    void setLanguage(Language lang) { language = lang; }
+    Language getLanguage() const { return language; }
+    void cycleTheme();
+    Theme* getCurrentTheme() { return currentTheme; }
+
+    // Text translation helper
+    const char* getText(const char* english, const char* chinese);
 
     // HUD elements
     void drawHUD(const Player* player);
@@ -43,16 +68,25 @@ private:
     float hudAnimation;
     float transitionAlpha;  // For smooth state transitions
 
+    // Language and theme
+    Language language;
+    Theme* currentTheme;
+    int currentThemeIndex;
+
     // Button helpers
     void drawPixelButton(int x, int y, int width, int height, const char* text, bool hovered, bool pressed);
     void drawPixelRect(int x, int y, int width, int height, Color color, bool filled = true);
     void drawPixelText(const char* text, int x, int y, int fontSize, Color color);
 
-    // Colors
+    // Colors (deprecated, using themes now)
     Color primaryColor;
     Color secondaryColor;
     Color accentColor;
     Color backgroundColor;
+
+    // Static themes array
+    static const int NUM_THEMES = 5;
+    static Theme themes[];
 };
 
 } // namespace BlockEater

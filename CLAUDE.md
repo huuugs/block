@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Block Eater is a raylib-based Android game written in C++17. It features a block-eating gameplay mechanic with multiple game modes, procedural audio, and touch controls.
+Block Eater is a raylib-based Android game written in C++17. It features a block-eating gameplay mechanic with multiple game modes, procedural audio, touch controls, and multi-language support.
 
 ## Build Commands
 
@@ -28,12 +28,23 @@ The project uses GitHub Actions for CI/CD. Push to `main` branch or manually tri
 
 ## Architecture
 
+### Game State Machine
+The `Game` class (`game.h/cpp`) manages the entire game through a state machine:
+- `GameState::MENU` - Main menu with mode selection
+- `GameState::PLAYING` - Active gameplay
+- `GameState::PAUSED` - Pause menu
+- `GameState::GAME_OVER` - Game over screen
+- `GameState::LEVEL_SELECT` - Level selection
+- `GameState::SETTINGS` - Settings (language, theme, controls)
+
+When switching states, always call `ui->resetTransition()` to prevent screen flash.
+
 ### Code Structure
 All game code lives in `app/src/main/cpp/`:
-- `game.h/cpp` - Main game class, state machine, and game loop
+- `game.h/cpp` - Main game class, state machine, game loop, entity management
 - `player.h/cpp` - Player entity with 6 progression levels
 - `enemy.h/cpp` - Four enemy types (Floating, Chasing, Stationary, Bouncing)
-- `ui.h/cpp` - Menu system and HUD
+- `ui.h/cpp` - Menu system, HUD, multi-language support, themes
 - `audio.h/cpp` - Procedural 8-bit sound generation
 - `modes.h/cpp` - Game mode logic (Endless, Level, Time Challenge)
 - `controls.h/cpp` - Virtual joystick and touch-follow input
@@ -44,10 +55,11 @@ All game code lives in `app/src/main/cpp/`:
 All game code uses `BlockEater::` namespace.
 
 ### Raylib Integration
-- Raylib is built as a static library during CI
+- Raylib is built as a static library during CI with `c++_shared` STL
 - Headers expected at: `app/src/main/cpp/include/raylib/`
 - Static library at: `app/src/main/cpp/jniLibs/arm64-v8a/libraylib.a`
 - Uses OpenGL ES 3.0 for Android rendering
+- **Critical**: Raylib provides `android_main()` wrapper that calls the standard `main()` function
 
 ### Android-Only Build
 The project is configured for `arm64-v8a` only. The 32-bit build is disabled due to NEON compilation issues in raylib 5.0.
@@ -62,23 +74,58 @@ The project is configured for `arm64-v8a` only. The 32-bit build is disabled due
 - Narrowing conversions in initializer lists require explicit casts (e.g., `static_cast<unsigned int>()`)
 - raylib headers must be included as `#include "raylib.h"` (not `<raylib.h>`)
 
+## Localization and Themes
+
+### Language Support
+The `UIManager` class supports multiple languages via the `Language` enum (ENGLISH, CHINESE). Use the `getText(english, chinese)` method for all translatable strings:
+```cpp
+const char* title = getText("START", "开始");
+```
+
+### Theme System
+Five built-in themes are available (Blue, Dark, Green, Purple, Red). Themes define:
+- `primary` - Primary UI color
+- `secondary` - Secondary UI color
+- `accent` - Accent/highlight color
+- `background` - Background color
+- `text` - Text color
+
+Use `currentTheme->color` to reference theme colors in UI code.
+
 ## Critical: Native Library Configuration
 
 The project uses Android NativeActivity framework with raylib. When modifying native code, keep these files synchronized:
 
 1. **CMakeLists.txt** (`app/src/main/cpp/CMakeLists.txt`):
    - Library name MUST be `add_library(main SHARED ...)`
-   - All target references must use `main` (not the app name)
+   - Uses `--whole-archive` linker flag to force inclusion of raylib's `android_main()`
+   - Links with `c++_shared` STL (not `c++_static`)
 
 2. **AndroidManifest.xml** (`app/src/main/AndroidManifest.xml`):
    - `<meta-data android:name="android.app.lib_name" android:value="main" />`
 
 3. **MainActivity.java** (`app/src/main/java/com/blockeater/MainActivity.java`):
-   - `System.loadLibrary("main")` in static initializer
+   - NativeActivity auto-loads the library via manifest metadata
+   - No manual `System.loadLibrary()` call needed
 
 4. **main.cpp** entry point:
    - Use standard `int main(int argc, char* argv[])` signature
    - Raylib provides its own `android_main()` wrapper that calls `main()`
    - Do NOT use `void android_main(android_app* app)` directly
 
-These four must match or the app will crash on startup with "Unable to find native library" errors.
+5. **build.gradle.kts**:
+   - Must specify `-DANDROID_STL=c++_shared` for C++ projects
+
+These must all match or the app will crash on startup with "Unable to find native library" errors.
+
+## Touch Input Handling
+
+Touch input is handled in each state's update function:
+```cpp
+if (GetTouchPointCount() > 0 || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    Vector2 pos = GetTouchPointCount() > 0 ? GetTouchPosition(0) : GetMousePosition();
+    // Check button bounds...
+}
+```
+
+The game also has an in-game menu button (top-right corner, 70x35px) that pauses gameplay.

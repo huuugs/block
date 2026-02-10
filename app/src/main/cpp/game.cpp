@@ -88,22 +88,6 @@ void Game::update() {
 
     ui->update(deltaTime);
     particles->update(deltaTime);
-
-    // Check for pause button
-    if ((GetTouchPointCount() > 0) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        Vector2 pos = (GetTouchPointCount() > 0) ? GetTouchPosition(0) : GetMousePosition();
-        // Check pause button area (top right)
-        if (pos.x > SCREEN_WIDTH - 100 && pos.x < SCREEN_WIDTH - 50 &&
-            pos.y > 30 && pos.y < 80) {
-            if (state == GameState::PLAYING) {
-                state = GameState::PAUSED;
-                audio->playButtonClickSound();
-            } else if (state == GameState::PAUSED) {
-                state = GameState::PLAYING;
-                audio->playButtonClickSound();
-            }
-        }
-    }
 }
 
 void Game::draw() {
@@ -217,6 +201,17 @@ void Game::updatePlaying() {
 
     // Update UI
     ui->update(deltaTime);
+
+    // Check for menu button click (top right corner)
+    if ((GetTouchPointCount() > 0) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        Vector2 pos = (GetTouchPointCount() > 0) ? GetTouchPosition(0) : GetMousePosition();
+        // Menu button area: x=SCREEN_WIDTH-80 to SCREEN_WIDTH-10, y=10 to 45
+        if (pos.x >= SCREEN_WIDTH - 80 && pos.x <= SCREEN_WIDTH - 10 &&
+            pos.y >= 10 && pos.y <= 45) {
+            state = GameState::PAUSED;
+            audio->playButtonClickSound();
+        }
+    }
 }
 
 void Game::updatePaused() {
@@ -242,10 +237,21 @@ void Game::updatePaused() {
             }
         }
 
-        // Handle Settings back button (at y=500, height=50)
+        // Handle Settings specific buttons
         if (state == GameState::SETTINGS) {
+            // Language button (at x=500, y=120)
+            if (pos.x >= 500 && pos.x <= 700 && pos.y >= 120 && pos.y <= 170) {
+                ui->setLanguage(ui->getLanguage() == Language::ENGLISH ? Language::CHINESE : Language::ENGLISH);
+                audio->playButtonClickSound();
+            }
+            // Theme next button (at x=720, y=190, width=100)
+            if (pos.x >= 720 && pos.x <= 820 && pos.y >= 190 && pos.y <= 240) {
+                ui->cycleTheme();
+                audio->playButtonClickSound();
+            }
+            // Back button (at y=550)
             if (pos.x >= SCREEN_WIDTH / 2 - 100 && pos.x <= SCREEN_WIDTH / 2 + 100 &&
-                pos.y >= 500 && pos.y <= 550) {
+                pos.y >= 550 && pos.y <= 600) {
                 state = GameState::MENU;
                 audio->playButtonClickSound();
                 ui->resetTransition();
@@ -345,6 +351,14 @@ void Game::drawPlaying() {
     if (mode == GameMode::TIME_CHALLENGE || mode == GameMode::LEVEL) {
         ui->drawTimer(timeRemaining);
     }
+
+    // Draw menu button (top right corner)
+    const char* menuText = ui->getText("MENU", "菜单");
+    int menuFontSize = 16;
+    int menuTextWidth = MeasureText(menuText, menuFontSize);
+    DrawRectangle(SCREEN_WIDTH - 80, 10, 70, 35, {50, 50, 80, 200});
+    DrawRectangleLines(SCREEN_WIDTH - 80, 10, 70, 35, {100, 100, 150, 255});
+    DrawText(menuText, SCREEN_WIDTH - 80 + (70 - menuTextWidth) / 2, 20, menuFontSize, WHITE);
 
     // Draw controls
     controls->draw();
