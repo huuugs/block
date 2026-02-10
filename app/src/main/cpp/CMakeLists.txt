@@ -6,26 +6,26 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Raylib configuration
-set(RAYLIB_DIR ${CMAKE_SOURCE_DIR}/../../../../raylib)
-set(RAYLIB_SRC ${RAYLIB_DIR}/src)
+# Raylib prebuilt library
+set(RAYLIB_DIR ${CMAKE_SOURCE_DIR}/jniLibs/\${ANDROID_ABI})
 
-# Include raylib source directly instead of using prebuilt library
-set(RAYLIB_SOURCES
-    ${RAYLIB_SRC}/rcore.c
-    ${RAYLIB_SRC}/rtextures.c
-    ${RAYLIB_SRC}/rtext.c
-    ${RAYLIB_SRC}/rmodels.c
-    ${RAYLIB_SRC}/raudio.c
-    ${RAYLIB_SRC}/rshapes.c
-)
+# Check if raylib library exists
+if(NOT EXISTS "${RAYLIB_DIR}/libraylib.a")
+    message(FATAL_ERROR "Raylib library not found for ${ANDROID_ABI}. Expected: ${RAYLIB_DIR}/libraylib.a")
+endif()
 
-# Include directories
-include_directories(
-    ${CMAKE_SOURCE_DIR}
-    ${RAYLIB_SRC}
-    ${RAYLIB_SRC}/external
-)
+# Include raylib headers (from project raylib directory)
+set(RAYLIB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../../../../raylib/src)
+if(EXISTS "${RAYLIB_INCLUDE_DIR}")
+    include_directories(
+        ${CMAKE_SOURCE_DIR}
+        ${RAYLIB_INCLUDE_DIR}
+        ${RAYLIB_INCLUDE_DIR}/external
+    )
+else()
+    # Fallback: use standard headers only
+    include_directories(${CMAKE_SOURCE_DIR})
+endif()
 
 # Source files
 set(GAME_SOURCES
@@ -41,11 +41,12 @@ set(GAME_SOURCES
     assets.cpp
 )
 
-# Create library
-add_library(blockeater SHARED ${GAME_SOURCES} ${RAYLIB_SOURCES})
+# Create shared library
+add_library(blockeater SHARED ${GAME_SOURCES})
 
-# Link libraries - use Android system libraries
+# Link raylib static library
 target_link_libraries(blockeater
+    ${RAYLIB_DIR}/libraylib.a
     log
     android
     GLESv3
@@ -59,15 +60,10 @@ target_compile_options(blockeater PRIVATE
     -ffast-math
 )
 
-# Platform-specific definitions for raylib
+# Platform-specific definitions
 target_compile_definitions(blockeater PRIVATE
     PLATFORM_ANDROID
     GRAPHIC_API_OPENGL_ES_3
     SUPPORT_MODULE_RTEXT
     SUPPORT_MODULE_RAUDIO
-)
-
-# Disable warnings in raylib code
-set_source_files_properties(${RAYLIB_SOURCES} PROPERTIES
-    COMPILE_FLAGS "-Wno-unused-variable -Wno-missing-field-initializers"
 )
