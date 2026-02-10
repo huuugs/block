@@ -63,11 +63,11 @@ jobs:
           make -j$(nproc)
 
           # Copy library - it's in the raylib subdirectory
-          mkdir -p ../../app/src/main/jniLibs/$ARCH
+          mkdir -p ../../app/src/main/cpp/jniLibs/$ARCH
           if [ -f raylib/libraylib.a ]; then
-            cp raylib/libraylib.a ../../app/src/main/jniLibs/$ARCH/
+            cp raylib/libraylib.a ../../app/src/main/cpp/jniLibs/$ARCH/
           elif [ -f libraylib.a ]; then
-            cp libraylib.a ../../app/src/main/jniLibs/$ARCH/
+            cp libraylib.a ../../app/src/main/cpp/jniLibs/$ARCH/
           else
             echo "ERROR: libraylib.a not found!"
             find . -name "libraylib.a"
