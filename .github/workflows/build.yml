@@ -82,7 +82,7 @@ jobs:
 
     - name: Build APK with Gradle
       run: |
-        ./gradlew assembleDebug --stacktrace
+        ./gradlew assembleDebug --info --stacktrace 2>&1 | tee build-output.log
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
@@ -97,6 +97,7 @@ jobs:
       with:
         name: build-logs
         path: |
+          build-output.log
           app/build/outputs/logs/
           app/.cxx/
           build/
