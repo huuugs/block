@@ -74,7 +74,7 @@ Sound AudioGenerator::GenerateEatSound(int level) {
     ApplyEnvelope(buffer, samples, 0.01f, 0.05f, 0.3f, 0.05f);
 
     Wave wave = {
-        .frameCount = samples,
+        .frameCount = static_cast<unsigned int>(samples),
         .sampleRate = sampleRate,
         .sampleSize = 16,
         .channels = 1,
@@ -94,7 +94,7 @@ Sound AudioGenerator::GenerateHitSound() {
     ApplyEnvelope(buffer, samples, 0.01f, 0.1f, 0.0f, 0.1f);
 
     Wave wave = {
-        .frameCount = samples,
+        .frameCount = static_cast<unsigned int>(samples),
         .sampleRate = sampleRate,
         .sampleSize = 16,
         .channels = 1,
@@ -126,7 +126,7 @@ Sound AudioGenerator::GenerateLevelUpSound() {
     ApplyEnvelope(buffer, samples, 0.05f, 0.2f, 0.0f, 0.2f);
 
     Wave wave = {
-        .frameCount = samples,
+        .frameCount = static_cast<unsigned int>(samples),
         .sampleRate = sampleRate,
         .sampleSize = 16,
         .channels = 1,
@@ -155,7 +155,7 @@ Sound AudioGenerator::GenerateDeathSound() {
     ApplyEnvelope(buffer, samples, 0.01f, 0.0f, 0.0f, 0.4f);
 
     Wave wave = {
-        .frameCount = samples,
+        .frameCount = static_cast<unsigned int>(samples),
         .sampleRate = sampleRate,
         .sampleSize = 16,
         .channels = 1,
@@ -175,7 +175,7 @@ Sound AudioGenerator::GenerateButtonClickSound() {
     ApplyEnvelope(buffer, samples, 0.01f, 0.02f, 0.0f, 0.02f);
 
     Wave wave = {
-        .frameCount = samples,
+        .frameCount = static_cast<unsigned int>(samples),
         .sampleRate = sampleRate,
         .sampleSize = 16,
         .channels = 1,

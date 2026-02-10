@@ -165,7 +165,7 @@ void UIManager::drawMainMenu() {
     int titleFontSize = 60;
     int titleWidth = MeasureText(title, titleFontSize);
 
-    Color titleColor = {255, 200 + (unsigned char)(55 * sinf(GetTime() * 3)), 50, 255};
+    Color titleColor = {255, static_cast<unsigned char>(200 + 55 * sinf(GetTime() * 3)), 50, 255};
     DrawText(title, SCREEN_WIDTH / 2 - titleWidth / 2, 100, titleFontSize, titleColor);
 
     // Menu buttons
