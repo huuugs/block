@@ -1,10 +1,9 @@
 #include "game.h"
-#include <android/native_activity.h>
 
 using namespace BlockEater;
 
-// Android entry point - called by NativeActivity framework
-void android_main(android_app* app) {
+// Raylib Android will call this from its android_main() wrapper
+int main(int argc, char* argv[]) {
     // Initialize window
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Block Eater");
     SetTargetFPS(TARGET_FPS);
@@ -22,4 +21,6 @@ void android_main(android_app* app) {
     // Cleanup
     CloseAudioDevice();
     CloseWindow();
+
+    return 0;
 }

@@ -61,3 +61,23 @@ The project is configured for `arm64-v8a` only. The 32-bit build is disabled due
 - Uses C++17 features
 - Narrowing conversions in initializer lists require explicit casts (e.g., `static_cast<unsigned int>()`)
 - raylib headers must be included as `#include "raylib.h"` (not `<raylib.h>`)
+
+## Critical: Native Library Configuration
+
+The project uses Android NativeActivity framework. When modifying native code, keep these three files synchronized:
+
+1. **CMakeLists.txt** (`app/src/main/cpp/CMakeLists.txt`):
+   - Library name MUST be `add_library(main SHARED ...)`
+   - All target references must use `main` (not the app name)
+
+2. **AndroidManifest.xml** (`app/src/main/AndroidManifest.xml`):
+   - `<meta-data android:name="android.app.lib_name" android:value="main" />`
+
+3. **MainActivity.java** (`app/src/main/java/com/blockeater/MainActivity.java`):
+   - `System.loadLibrary("main")` in static initializer
+
+4. **main.cpp** entry point:
+   - Must use `void android_main(android_app* app)` signature (NOT `int main()`)
+   - NativeActivity framework calls this function automatically
+
+These four must match or the app will crash on startup with "Unable to find native library" errors.
