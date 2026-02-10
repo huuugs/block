@@ -6,6 +6,19 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+# Find native_app_glue from NDK
+# NDK r25+ has moved native_app_glue, try multiple locations
+find_file(NATIVE_APP_GLUE
+    NAMES native_app_glue.c
+    PATHS
+        ${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/*/sysroot/usr/src/android/native_app_glue/native_app_glue.c
+        ${CMAKE_ANDROID_NDK}/sources/android/native_app_glue/native_app_glue.c
+)
+
+if(NOT NATIVE_APP_GLUE)
+    message(WARNING "native_app_glue.c not found - trying alternative approach")
+endif()
+
 # Raylib prebuilt library
 set(RAYLIB_DIR ${CMAKE_SOURCE_DIR}/jniLibs/${ANDROID_ABI})
 
@@ -39,6 +52,12 @@ set(GAME_SOURCES
     controls.cpp
     assets.cpp
 )
+
+# Add native_app_glue if found
+if(NATIVE_APP_GLUE)
+    list(APPEND GAME_SOURCES ${NATIVE_APP_GLUE})
+    message(STATUS "Adding native_app_glue.c: ${NATIVE_APP_GLUE}")
+endif()
 
 # Create shared library
 add_library(main SHARED ${GAME_SOURCES})
