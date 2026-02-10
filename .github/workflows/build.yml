@@ -28,16 +28,13 @@ jobs:
       run: |
         yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;25.2.9519653"
 
-    - name: Install CMake
-      run: |
-        wget -q https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.tar.gz -O cmake.tar.gz
-        tar -xzf cmake.tar.gz -C /usr/local --strip-components=1
-        cmake --version
-
     - name: Setup local.properties
       run: |
         echo "sdk.dir=$ANDROID_HOME" > local.properties
         echo "ndk.dir=$ANDROID_HOME/ndk/25.2.9519653" >> local.properties
+
+    - name: Check CMake version
+      run: cmake --version
 
     - name: Download and build raylib
       run: |
