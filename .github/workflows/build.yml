@@ -63,9 +63,9 @@ jobs:
 
           make -j$(nproc)
 
-          # Copy to app jniLibs
+          # Find and copy the library
           mkdir -p ../../app/src/main/jniLibs/$ARCH
-          cp raylib/libraylib.a ../../app/src/main/jniLibs/$ARCH/
+          find . -name "libraylib.a" -exec cp {} ../../app/src/main/jniLibs/$ARCH/ \;
 
           cd ../..
         done
