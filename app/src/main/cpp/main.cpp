@@ -1,9 +1,10 @@
 #include "game.h"
+#include <android/native_activity.h>
 
 using namespace BlockEater;
 
-// Android entry point
-int main(int argc, char* argv[]) {
+// Android entry point - called by NativeActivity framework
+void android_main(android_app* app) {
     // Initialize window
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Block Eater");
     SetTargetFPS(TARGET_FPS);
@@ -21,6 +22,4 @@ int main(int argc, char* argv[]) {
     // Cleanup
     CloseAudioDevice();
     CloseWindow();
-
-    return 0;
 }

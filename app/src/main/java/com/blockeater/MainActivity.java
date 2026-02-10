@@ -6,7 +6,7 @@ import android.view.WindowManager;
 
 public class MainActivity extends NativeActivity {
     static {
-        System.loadLibrary("blockeater");
+        System.loadLibrary("main");
     }
 
     @Override
