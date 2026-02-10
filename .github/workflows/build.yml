@@ -62,8 +62,9 @@ jobs:
 
           make -j$(nproc)
 
-          # Copy library - it's in the raylib subdirectory
+          # Copy library and headers
           mkdir -p ../../app/src/main/cpp/jniLibs/$ARCH
+          mkdir -p ../../app/src/main/cpp/include/raylib
           if [ -f raylib/libraylib.a ]; then
             cp raylib/libraylib.a ../../app/src/main/cpp/jniLibs/$ARCH/
           elif [ -f libraylib.a ]; then
@@ -73,6 +74,9 @@ jobs:
             find . -name "libraylib.a"
             exit 1
           fi
+          # Copy raylib headers
+          cp -r ../src/*.h ../../app/src/main/cpp/include/raylib/
+          cp -r ../src/external ../../app/src/main/cpp/include/raylib/
 
           cd ../..
         done

@@ -14,8 +14,8 @@ if(NOT EXISTS "${RAYLIB_DIR}/libraylib.a")
     message(FATAL_ERROR "Raylib library not found for ${ANDROID_ABI}. Expected: ${RAYLIB_DIR}/libraylib.a")
 endif()
 
-# Include raylib headers (from project raylib directory)
-set(RAYLIB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/../../../../raylib/src)
+# Include raylib headers
+set(RAYLIB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include/raylib)
 if(EXISTS "${RAYLIB_INCLUDE_DIR}")
     include_directories(
         ${CMAKE_SOURCE_DIR}
@@ -23,8 +23,7 @@ if(EXISTS "${RAYLIB_INCLUDE_DIR}")
         ${RAYLIB_INCLUDE_DIR}/external
     )
 else()
-    # Fallback: use standard headers only
-    include_directories(${CMAKE_SOURCE_DIR})
+    message(FATAL_ERROR "Raylib headers not found at: ${RAYLIB_INCLUDE_DIR}")
 endif()
 
 # Source files
