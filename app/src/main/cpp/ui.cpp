@@ -8,6 +8,7 @@ namespace BlockEater {
 UIManager::UIManager()
     : menuAnimation(0)
     , hudAnimation(0)
+    , transitionAlpha(0)
     , primaryColor{100, 200, 255, 255}
     , secondaryColor{50, 100, 150, 255}
     , accentColor{255, 200, 50, 255}
@@ -31,6 +32,12 @@ void UIManager::update(float dt) {
 }
 
 void UIManager::draw(GameState state, GameMode mode) {
+    // Fade in effect when transitioning to a new state
+    if (transitionAlpha < 1.0f) {
+        transitionAlpha += GetFrameTime() * 3.0f;
+        if (transitionAlpha > 1.0f) transitionAlpha = 1.0f;
+    }
+
     switch (state) {
         case GameState::MENU:
             drawMainMenu();
@@ -50,6 +57,12 @@ void UIManager::draw(GameState state, GameMode mode) {
         case GameState::SETTINGS:
             drawSettings();
             break;
+    }
+
+    // Draw fade overlay if transitioning
+    if (transitionAlpha < 1.0f) {
+        unsigned char alpha = static_cast<unsigned char>((1.0f - transitionAlpha) * 255);
+        DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, {0, 0, 0, alpha});
     }
 }
 
@@ -182,6 +195,8 @@ void UIManager::drawMainMenu() {
                    "TIME CHALLENGE", false, false);
     drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, startY + gap * 3, buttonWidth, buttonHeight,
                    "SETTINGS", false, false);
+    drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, startY + gap * 4, buttonWidth, buttonHeight,
+                   "QUIT", false, false);
 
     // Instructions
     const char* instructions = "Touch controls enabled";

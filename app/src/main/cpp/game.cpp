@@ -171,6 +171,7 @@ void Game::updateMenu() {
                 // Level Mode
                 state = GameState::LEVEL_SELECT;
                 audio->playButtonClickSound();
+                ui->resetTransition();
             } else if (pos.y >= startY + gap * 2 && pos.y <= startY + gap * 2 + buttonHeight) {
                 // Time Challenge
                 startGame(GameMode::TIME_CHALLENGE);
@@ -178,6 +179,11 @@ void Game::updateMenu() {
                 // Settings
                 state = GameState::SETTINGS;
                 audio->playButtonClickSound();
+                ui->resetTransition();
+            } else if (pos.y >= startY + gap * 4 && pos.y <= startY + gap * 4 + buttonHeight) {
+                // Quit - exit the game
+                audio->playButtonClickSound();
+                return;  // This will exit the run() loop
             }
         }
     }
@@ -222,14 +228,27 @@ void Game::updatePaused() {
 
         if (pos.x >= SCREEN_WIDTH / 2 - buttonWidth / 2 && pos.x <= SCREEN_WIDTH / 2 + buttonWidth / 2) {
             if (pos.y >= 250 && pos.y <= 250 + buttonHeight) {
-                // Resume
-                state = GameState::PLAYING;
-                audio->playButtonClickSound();
+                // Resume (only when actually paused)
+                if (state == GameState::PAUSED) {
+                    state = GameState::PLAYING;
+                    audio->playButtonClickSound();
+                }
             } else if (pos.y >= 320 && pos.y <= 320 + buttonHeight) {
-                // Quit
+                // Quit to menu
                 state = GameState::MENU;
                 audio->playButtonClickSound();
                 resetGame();
+                ui->resetTransition();
+            }
+        }
+
+        // Handle Settings back button (at y=500, height=50)
+        if (state == GameState::SETTINGS) {
+            if (pos.x >= SCREEN_WIDTH / 2 - 100 && pos.x <= SCREEN_WIDTH / 2 + 100 &&
+                pos.y >= 500 && pos.y <= 550) {
+                state = GameState::MENU;
+                audio->playButtonClickSound();
+                ui->resetTransition();
             }
         }
     }
@@ -251,6 +270,7 @@ void Game::updateGameOver() {
                 state = GameState::MENU;
                 audio->playButtonClickSound();
                 resetGame();
+                ui->resetTransition();
             }
         }
     }
@@ -266,6 +286,7 @@ void Game::updateLevelSelect() {
             pos.y >= 500 && pos.y <= 550) {
             state = GameState::MENU;
             audio->playButtonClickSound();
+            ui->resetTransition();
             return;
         }
 

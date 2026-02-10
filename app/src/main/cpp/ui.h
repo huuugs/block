@@ -14,6 +14,7 @@ public:
 
     void update(float dt);
     void draw(GameState state, GameMode mode);
+    void resetTransition() { transitionAlpha = 0.0f; }
 
     // HUD elements
     void drawHUD(const Player* player);
@@ -40,6 +41,7 @@ private:
     // Animations
     float menuAnimation;
     float hudAnimation;
+    float transitionAlpha;  // For smooth state transitions
 
     // Button helpers
     void drawPixelButton(int x, int y, int width, int height, const char* text, bool hovered, bool pressed);
