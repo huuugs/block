@@ -64,7 +64,7 @@ The project is configured for `arm64-v8a` only. The 32-bit build is disabled due
 
 ## Critical: Native Library Configuration
 
-The project uses Android NativeActivity framework. When modifying native code, keep these three files synchronized:
+The project uses Android NativeActivity framework with raylib. When modifying native code, keep these files synchronized:
 
 1. **CMakeLists.txt** (`app/src/main/cpp/CMakeLists.txt`):
    - Library name MUST be `add_library(main SHARED ...)`
@@ -77,7 +77,8 @@ The project uses Android NativeActivity framework. When modifying native code, k
    - `System.loadLibrary("main")` in static initializer
 
 4. **main.cpp** entry point:
-   - Must use `void android_main(android_app* app)` signature (NOT `int main()`)
-   - NativeActivity framework calls this function automatically
+   - Use standard `int main(int argc, char* argv[])` signature
+   - Raylib provides its own `android_main()` wrapper that calls `main()`
+   - Do NOT use `void android_main(android_app* app)` directly
 
 These four must match or the app will crash on startup with "Unable to find native library" errors.
