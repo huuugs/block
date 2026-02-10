@@ -75,7 +75,7 @@ Sound AudioGenerator::GenerateEatSound(int level) {
 
     Wave wave = {
         .frameCount = static_cast<unsigned int>(samples),
-        .sampleRate = sampleRate,
+        .sampleRate = static_cast<unsigned int>(sampleRate),
         .sampleSize = 16,
         .channels = 1,
         .data = buffer
@@ -95,7 +95,7 @@ Sound AudioGenerator::GenerateHitSound() {
 
     Wave wave = {
         .frameCount = static_cast<unsigned int>(samples),
-        .sampleRate = sampleRate,
+        .sampleRate = static_cast<unsigned int>(sampleRate),
         .sampleSize = 16,
         .channels = 1,
         .data = buffer
@@ -127,7 +127,7 @@ Sound AudioGenerator::GenerateLevelUpSound() {
 
     Wave wave = {
         .frameCount = static_cast<unsigned int>(samples),
-        .sampleRate = sampleRate,
+        .sampleRate = static_cast<unsigned int>(sampleRate),
         .sampleSize = 16,
         .channels = 1,
         .data = buffer
@@ -156,7 +156,7 @@ Sound AudioGenerator::GenerateDeathSound() {
 
     Wave wave = {
         .frameCount = static_cast<unsigned int>(samples),
-        .sampleRate = sampleRate,
+        .sampleRate = static_cast<unsigned int>(sampleRate),
         .sampleSize = 16,
         .channels = 1,
         .data = buffer
@@ -176,7 +176,7 @@ Sound AudioGenerator::GenerateButtonClickSound() {
 
     Wave wave = {
         .frameCount = static_cast<unsigned int>(samples),
-        .sampleRate = sampleRate,
+        .sampleRate = static_cast<unsigned int>(sampleRate),
         .sampleSize = 16,
         .channels = 1,
         .data = buffer
