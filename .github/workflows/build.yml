@@ -24,9 +24,10 @@ jobs:
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    - name: Install NDK
+    - name: Install NDK and CMake
       run: |
         yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "ndk;25.2.9519653"
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --install "cmake;3.26.4"
 
     - name: Setup local.properties
       run: |
@@ -42,6 +43,10 @@ jobs:
           mkdir -p raylib-src/build-android-$ARCH
           cd raylib-src/build-android-$ARCH
 
+          # Android-specific CMake flags
+          export PLATFORM=Android
+          export GRAPHICS=GRAPHIC_API_OPENGL_ES_3
+
           cmake .. \
             -DCMAKE_TOOLCHAIN_FILE=$ANDROID_HOME/ndk/25.2.9519653/build/cmake/android.toolchain.cmake \
             -DANDROID_ABI=$ARCH \
@@ -51,13 +56,16 @@ jobs:
             -DBUILD_SHARED_LIBS=OFF \
             -DBUILD_EXAMPLES=OFF \
             -DPLATFORM=Android \
+            -DGRAPHIC=GRAPHIC_API_OPENGL_ES_3 \
+            -DUSE_WAYLAND=OFF \
+            -DUSE_X11=OFF \
             -G "Unix Makefiles"
 
           make -j$(nproc)
 
           # Copy to app jniLibs
           mkdir -p ../../app/src/main/jniLibs/$ARCH
-          cp libraylib.a ../../app/src/main/jniLibs/$ARCH/
+          cp raylib/libraylib.a ../../app/src/main/jniLibs/$ARCH/
 
           cd ../..
         done
@@ -76,7 +84,7 @@ jobs:
         name: block-eater-apk
         path: app/build/outputs/apk/debug/app-debug.apk
 
-    - name: Upload build log
+    - name: Upload build log on failure
       uses: actions/upload-artifact@v4
       if: failure()
       with:
@@ -84,3 +92,4 @@ jobs:
         path: |
           app/build/outputs/logs/
           app/.cxx/
+          build/
