@@ -53,11 +53,8 @@ target_link_libraries(main
     OpenSLES
 )
 
-# Linker flags - ensure android_main from raylib is exported
-target_link_options(main PRIVATE
-    -Wl,--no-strip
-    -u android_main
-)
+# No special linker flags needed
+# raylib handles the Android entry point internally
 
 # Compiler flags
 target_compile_options(main PRIVATE
