@@ -40,7 +40,8 @@ jobs:
       run: |
         git clone --depth 1 --branch 5.0 https://github.com/raysan5/raylib.git raylib-src
 
-        for ARCH in arm64-v8a armeabi-v7a; do
+        # Only build arm64-v8a (32-bit has NEON compilation bugs in raylib 5.0)
+        for ARCH in arm64-v8a; do
           echo "Building raylib for $ARCH..."
           mkdir -p raylib-src/build-android-$ARCH
           cd raylib-src/build-android-$ARCH
