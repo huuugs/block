@@ -1,0 +1,33 @@
+# Build outputs
+app/build/
+app/.cxx/
+.gradle/
+build/
+local.properties
+*.apk
+*.aab
+
+# NDK
+android-ndk/
+ndk/
+raylib/build-*/
+raylib-source/
+raylib/.git
+
+# Temporary files
+*.tmp
+*.log
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# proot
+/tmp/x86_64-root/
