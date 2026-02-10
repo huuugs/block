@@ -41,10 +41,10 @@ set(GAME_SOURCES
 )
 
 # Create shared library
-add_library(blockeater SHARED ${GAME_SOURCES})
+add_library(main SHARED ${GAME_SOURCES})
 
 # Link raylib static library
-target_link_libraries(blockeater
+target_link_libraries(main
     ${RAYLIB_DIR}/libraylib.a
     log
     android
@@ -54,13 +54,13 @@ target_link_libraries(blockeater
 )
 
 # Compiler flags
-target_compile_options(blockeater PRIVATE
+target_compile_options(main PRIVATE
     -O3
     -ffast-math
 )
 
 # Platform-specific definitions
-target_compile_definitions(blockeater PRIVATE
+target_compile_definitions(main PRIVATE
     PLATFORM_ANDROID
     GRAPHIC_API_OPENGL_ES_3
     SUPPORT_MODULE_RTEXT
