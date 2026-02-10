@@ -10,15 +10,15 @@ local.properties
 # NDK
 android-ndk/
 ndk/
-raylib/build-*/
+raylib/
 raylib-source/
-raylib/.git
 
 # Temporary files
 *.tmp
 *.log
 *.swp
 *~
+apk-download/
 
 # OS
 .DS_Store
@@ -28,6 +28,7 @@ Thumbs.db
 .idea/
 .vscode/
 *.iml
+.claude/
 
 # proot
 /tmp/x86_64-root/
