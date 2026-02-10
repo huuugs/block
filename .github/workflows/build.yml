@@ -30,8 +30,8 @@ jobs:
 
     - name: Install CMake
       run: |
-        wget -q https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.sh -O cmake.sh
-        sh cmake.sh --skip-license --prefix=/usr/local
+        wget -q https://github.com/Kitware/CMake/releases/download/v3.26.4/cmake-3.26.4-linux-x86_64.tar.gz -O cmake.tar.gz
+        tar -xzf cmake.tar.gz -C /usr/local --strip-components=1
         cmake --version
 
     - name: Setup local.properties
