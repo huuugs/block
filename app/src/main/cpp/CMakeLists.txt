@@ -7,7 +7,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Raylib prebuilt library
-set(RAYLIB_DIR ${CMAKE_SOURCE_DIR}/jniLibs/\${ANDROID_ABI})
+set(RAYLIB_DIR ${CMAKE_SOURCE_DIR}/jniLibs/${ANDROID_ABI})
 
 # Check if raylib library exists
 if(NOT EXISTS "${RAYLIB_DIR}/libraylib.a")
