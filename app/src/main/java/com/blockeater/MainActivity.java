@@ -5,10 +5,6 @@ import android.os.Bundle;
 import android.view.WindowManager;
 
 public class MainActivity extends NativeActivity {
-    static {
-        System.loadLibrary("main");
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

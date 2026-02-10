@@ -43,20 +43,27 @@ set(GAME_SOURCES
 # Create shared library
 add_library(main SHARED ${GAME_SOURCES})
 
-# Link raylib static library
+# Link raylib static library and native app glue
 target_link_libraries(main
     ${RAYLIB_DIR}/libraylib.a
-    log
     android
+    log
     GLESv3
     EGL
     OpenSLES
+)
+
+# Linker flags - ensure all symbols are resolved
+target_link_options(main PRIVATE
+    -Wl,--no-undefined
+    -Wl,--exclude-libs,ALL
 )
 
 # Compiler flags
 target_compile_options(main PRIVATE
     -O3
     -ffast-math
+    -fPIC
 )
 
 # Platform-specific definitions
