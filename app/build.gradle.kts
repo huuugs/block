@@ -16,6 +16,14 @@ android {
         ndk {
             abiFilters += listOf("arm64-v8a")
         }
+
+        // For C++ projects, use c++_shared STL
+        // See: https://github.com/raysan5/raylib/wiki/Working-for-Android
+        externalNativeBuild {
+            cmake {
+                arguments += listOf("-DANDROID_STL=c++_shared")
+            }
+        }
     }
 
     buildTypes {

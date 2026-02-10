@@ -72,9 +72,8 @@ target_link_libraries(main
     OpenSLES
 )
 
-# Linker flags - ensure all symbols are resolved
+# Linker flags
 target_link_options(main PRIVATE
-    -Wl,--no-undefined
     -Wl,--exclude-libs,ALL
 )
 
@@ -82,7 +81,6 @@ target_link_options(main PRIVATE
 target_compile_options(main PRIVATE
     -O3
     -ffast-math
-    -fPIC
 )
 
 # Platform-specific definitions
