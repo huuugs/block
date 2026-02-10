@@ -86,8 +86,7 @@ jobs:
 
     - name: Build APK with Gradle
       run: |
-        ./gradlew clean --no-daemon
-        ./gradlew assembleDebug --no-daemon --info --stacktrace 2>&1 | tee build-output.log
+        ./gradlew assembleDebug --no-daemon --no-build-cache --info --stacktrace 2>&1 | tee build-output.log
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
