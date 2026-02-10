@@ -44,17 +44,17 @@ set(GAME_SOURCES
 add_library(main SHARED ${GAME_SOURCES})
 
 # Link raylib static library and native app glue
+# Use --whole-archive to ensure android_main from raylib is included
 target_link_libraries(main
+    -Wl,--whole-archive
     ${RAYLIB_DIR}/libraylib.a
+    -Wl,--no-whole-archive
     android
     log
     GLESv3
     EGL
     OpenSLES
 )
-
-# No special linker flags needed
-# raylib handles the Android entry point internally
 
 # Compiler flags
 target_compile_options(main PRIVATE
