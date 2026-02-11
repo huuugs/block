@@ -384,13 +384,51 @@ void AssetManager::UnloadExternalFonts() {
     if (pixelFont.texture.id != 0 && pixelFont.texture.id != GetFontDefault().texture.id) {
         UnloadFont(pixelFont);
     }
-    if (smallFont.texture.id != 0 && 
-        smallFont.texture.id != GetFontDefault().texture.id && 
+    if (smallFont.texture.id != 0 &&
+        smallFont.texture.id != GetFontDefault().texture.id &&
         smallFont.texture.id != pixelFont.texture.id) {
         UnloadFont(smallFont);
     }
     pixelFont = GetFontDefault();
     smallFont = GetFontDefault();
+}
+
+bool AssetManager::LoadFontByType(int fontType) {
+    // Unload current fonts first
+    if (pixelFont.texture.id != 0 && pixelFont.texture.id != GetFontDefault().texture.id) {
+        UnloadFont(pixelFont);
+    }
+    if (smallFont.texture.id != 0 &&
+        smallFont.texture.id != GetFontDefault().texture.id &&
+        smallFont.texture.id != pixelFont.texture.id) {
+        UnloadFont(smallFont);
+    }
+
+    // Load new font based on type
+    const char* fontPath = nullptr;
+    int fontSize = 16;
+
+    switch (fontType) {
+        case 0:  // Source Han Sans
+            fontPath = "fonts/SourceHanSansCN-Regular.otf";
+            fontSize = 18;
+            TraceLog(LOG_INFO, "Loading Source Han Sans font");
+            break;
+        case 1:  // Zpix
+            fontPath = "fonts/zpix.ttf";
+            fontSize = 16;
+            TraceLog(LOG_INFO, "Loading Zpix font");
+            break;
+        case 2:  // Default
+            pixelFont = GetFontDefault();
+            smallFont = GetFontDefault();
+            TraceLog(LOG_INFO, "Using default font");
+            return true;
+        default:
+            return false;
+    }
+
+    return LoadExternalFont(fontPath, fontSize);
 }
 
 } // namespace BlockEater

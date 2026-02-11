@@ -32,6 +32,7 @@ UIManager::UIManager()
     , language(Language::ENGLISH)
     , currentThemeIndex(0)
     , currentTheme(&themes[0])
+    , currentFontType(FontType::SOURCE_HAN_SANS)
     , currentControlMode(ControlMode::VIRTUAL_JOYSTICK)
     , masterVolume(0.8f)
     , m_isMuted(false)
@@ -530,8 +531,22 @@ void UIManager::drawSettings() {
         settingsSelection = 2;  // Toggle control mode
     }
 
+    // Font setting
+    float fontY = startY + spacing * 3;
+    drawTextWithFont(getText("Font:", "字体:"), (int)labelX, (int)(fontY + 15), 20, currentTheme->text);
+
+    // Show current font
+    if (drawButton(valueX, fontY, buttonWidth, buttonHeight, getFontName())) {
+        settingsSelection = 7;  // Cycle font
+    }
+
+    // Font cycle button
+    if (drawButton(valueX + buttonWidth + 20, fontY, 80.0f, buttonHeight, ">")) {
+        cycleFont();
+    }
+
     // Volume sliders (interactive)
-    float volumeY = startY + spacing * 3;
+    float volumeY = startY + spacing * 4;
     drawTextWithFont(getText("Volume:", "音量:"), (int)labelX, (int)(volumeY + 15), 20, currentTheme->text);
 
     // Volume bar background
@@ -566,13 +581,13 @@ void UIManager::drawSettings() {
     }
 
     // View Logs button
-    float logsY = startY + spacing * 4;
+    float logsY = startY + spacing * 5;
     if (drawButton(valueX, logsY, buttonWidth, buttonHeight, getText("View Logs", "查看日志"))) {
         settingsSelection = 6;  // View logs
     }
 
     // Back button at bottom
-    float backY = 550.0f;
+    float backY = 620.0f;
     if (drawButton((float)(SCREEN_WIDTH / 2) - 100, backY, 200.0f, 50.0f,
                    getText("BACK", "返回"))) {
         settingsSelection = 5;  // Back
@@ -817,6 +832,47 @@ void UIManager::drawLogs() {
                    backButtonWidth, backButtonHeight,
                    getText("BACK", "返回"))) {
         logsSelection = 0;  // Back
+    }
+}
+
+// Font control methods
+void UIManager::setFontType(FontType type) {
+    currentFontType = type;
+}
+
+void UIManager::cycleFont() {
+    switch (currentFontType) {
+        case FontType::SOURCE_HAN_SANS:
+            currentFontType = FontType::ZPIX;
+            break;
+        case FontType::ZPIX:
+            currentFontType = FontType::DEFAULT;
+            break;
+        case FontType::DEFAULT:
+            currentFontType = FontType::SOURCE_HAN_SANS;
+            break;
+    }
+}
+
+const char* UIManager::getFontName() const {
+    switch (currentFontType) {
+        case FontType::SOURCE_HAN_SANS:
+            return getText("Source Han Sans", "思源黑体");
+        case FontType::ZPIX:
+            return getText("Zpix", "像素字体");
+        case FontType::DEFAULT:
+            return getText("Default", "默认字体");
+        default:
+            return getText("Unknown", "未知");
+    }
+}
+
+void UIManager::reloadFonts(Font* mainFont, Font* sFont) {
+    if (mainFont && mainFont->texture.id != 0) {
+        this->mainFont = mainFont;
+        this->secondaryFont = sFont;
+        this->useCustomFont = true;
+        logInfo("Fonts reloaded successfully");
     }
 }
 

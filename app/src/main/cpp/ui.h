@@ -14,6 +14,13 @@ enum class Language {
     CHINESE
 };
 
+// Font type for font switching
+enum class FontType {
+    SOURCE_HAN_SANS,    // Full CJK support
+    ZPIX,               // Pixel style, limited Chinese
+    DEFAULT             // Raylib default (no Chinese)
+};
+
 // Theme colors
 struct Theme {
     Color primary;
@@ -89,6 +96,13 @@ public:
     bool isMuted() const { return m_isMuted; }
     void toggleMute() { m_isMuted = !m_isMuted; }
 
+    // Font control
+    void setFontType(FontType type);
+    FontType getFontType() const { return currentFontType; }
+    void cycleFont();
+    const char* getFontName() const;
+    void reloadFonts(Font* mainFont, Font* sFont);
+
     // Text translation helper
     const char* getText(const char* english, const char* chinese);
 
@@ -163,6 +177,9 @@ private:
     Language language;
     Theme* currentTheme;
     int currentThemeIndex;
+
+    // Font control
+    FontType currentFontType;
 
     // Control mode (for settings display)
     ControlMode currentControlMode;

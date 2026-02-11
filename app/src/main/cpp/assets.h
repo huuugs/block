@@ -23,10 +23,13 @@ public:
     void LoadFonts();
     Font& GetPixelFont() { return pixelFont; }
     Font& GetSmallFont() { return smallFont; }
-    
+
     // External font loading for Chinese support
     bool LoadExternalFont(const char* fontPath, int fontSize);
     void UnloadExternalFonts();
+
+    // Reload specific font by type (for font switching)
+    bool LoadFontByType(int fontType);  // 0=SourceHanSans, 1=Zpix, 2=Default
 
     // Color palettes
     static constexpr Color PALETTE_RETRO[] = {

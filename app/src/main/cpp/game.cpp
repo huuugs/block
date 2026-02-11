@@ -403,6 +403,12 @@ void Game::updateSettings() {
             case 6:  // View Logs
                 ui->setCurrentPanel(MenuPanel::LOGS);
                 break;
+            case 7:  // Cycle Font
+                ui->cycleFont();
+                // Reload fonts immediately
+                assets->LoadFontByType(static_cast<int>(ui->getFontType()));
+                ui->reloadFonts(&assets->GetPixelFont(), &assets->GetSmallFont());
+                break;
         }
 
         ui->clearSelections();
