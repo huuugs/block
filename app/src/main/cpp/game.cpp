@@ -44,8 +44,6 @@ void Game::init() {
 
     audio = new AudioManager();
     audio->init();
-    // Set initial volume from UI
-    audio->setMasterVolume(ui->getMasterVolume());
 
     controls = new ControlSystem();
     controls->init();
