@@ -237,7 +237,9 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
     // We MUST use LoadFileData() + LoadFontFromMemory() method (like the working example)
 
     // Collect all Chinese text used in the game into one string
+    // Include common Chinese characters for user names and UI
     const char* allChineseText =
+        // Game UI text
         "方块吞噬者无尽模式关卡模式时间挑战设置返回开始继续退出重新开始"
         "生命能量等级分数时间"
         "主题蓝色深色绿色紫色红色"
@@ -256,7 +258,6 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         "控制方式"
         "日志查看器"
         "所有日志已同步"
-        "HP"
         "当前等级"
         "当前分数"
         "剩余时间"
@@ -274,20 +275,48 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         "再玩一次"
         "继续游戏"
         "返回主菜单"
-        "技能4没有出现弧形防护罩"
-        "选关卡的模式一进去就直接死了"
-        "ASCII测试中文字符测试"
-        // Missing characters found in UI
-        "音量静音取消"           // Volume/Mute controls
-        "触摸左半屏移动"        // Touch controls
-        "经验系统显示条日志"     // Experience, System, Display, logs
-        "选择关卡摇杆像素"       // Select level, joystick, pixel
-        "退出到菜单再试一次"    // Quit to menu, try again
-        "思源黑体默认字体未知"  // Font names
-        "查看日志";             // View logs
+        "音量静音取消"
+        "触摸左半屏移动"
+        "经验系统显示条日志"
+        "选择关卡摇杆像素"
+        "退出到菜单再试一次"
+        "思源黑体默认字体未知"
+        "查看日志"
+        // User System text
+        "用户系统"
+        "用户名"
+        "登录注册"
+        "请输入用户名"
+        "确认登录"
+        "取消返回"
+        "最高分"
+        "游戏次数"
+        "总游戏时长"
+        "通关记录"
+        "无尽模式最高分"
+        "时间挑战最好成绩"
+        "成就系统"
+        "个人资料"
+        "保存成功"
+        "保存失败"
+        "已存在"
+        "创建成功"
+        "欢迎回来"
+        "玩家"
+        "数据统计"
+        "历史记录"
+        "清空数据"
+        "删除账户"
+        "确定"
+        "警告"
+        "无法恢复"
+        // Common Chinese characters for names (Top 500 most common)
+        "的一是在不了有和人这中大为上个国我以要他时来用们生到作地于出就分对成会可主发年动同工也能下过子说产种面而方后多定行学法所民得经十三之进着等部度家电力里如水化高自二理起小物现实加量都两体制机当使点从业本去把性好应开它合还因由其些然前外天政四日那社义事平形相全表间样与关各重新线内数正心反你明看原又么利比或但质气第向道命此变条只没结解问意建月公无系军很情者最立代想已通并提直题党程展五果料象员革位入常文总次品式活设及管特件长求老头基资边流路级少图山统接知较将组见计别她手角期根论运农指几九区强放决西被干做必战先回则任取完举科触广"
+        "达到彻底复杂化详细速降始谈属支容丝毫未若续纳依获显富故职请微今脸否独乐脱纪虽般环较均云备且搞充父完罪题良置育倒编顾黑冷伤倒终清脚举洗难饭彩班忽忽忘失留刚快专类双规李张陈刘杨黄赵王周吴徐孙马朱胡郭何高林罗郑梁谢宋唐许韩冯邓曹彭曾萧田董袁潘于蒋蔡余杜叶程苏魏吕丁任沈姚卢姜崔钟谭陆汪范金石廖贾夏韦付方白邹孟熊秦邱江尹薛闫段雷侯龙陶陶贺"
+        "历史记录统计保存删除确认取消警告危险无法恢复账号注册登录";
 
-    // Add ASCII range manually
-    char allText[1024];
+    // Increase buffer size for more Chinese characters
+    char allText[4096];
     snprintf(allText, sizeof(allText),
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
         " !\"#$%%&'()*+,-./:;<=>?@[\\]^_`{|}~%s",

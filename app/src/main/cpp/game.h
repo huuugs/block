@@ -23,7 +23,8 @@ enum class GameState {
     PAUSED,
     GAME_OVER,
     LEVEL_SELECT,
-    SETTINGS
+    SETTINGS,
+    USER_MENU
 };
 
 // Game modes
@@ -75,6 +76,7 @@ class AssetManager;
 class GameCamera;
 class Bullet;
 class SkillManager;
+class UserManager;
 
 // Main Game class
 class Game {
@@ -110,6 +112,7 @@ public:
     AssetManager* assets;
     GameCamera* camera;
     SkillManager* skillManager;
+    UserManager* userManager;
 
 private:
     GameState state;
@@ -129,12 +132,14 @@ private:
     void updateGameOver();
     void updateLevelSelect();
     void updateSettings();
+    void updateUserMenu();
 
     void drawMenu();
     void drawPlaying();
     void drawPaused();
     void drawGameOver();
     void drawLevelSelect();
+    void drawUserMenu();
 
     void spawnEnemies();
     void checkCollisions();

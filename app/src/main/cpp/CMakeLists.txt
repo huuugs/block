@@ -35,6 +35,7 @@ set(GAME_SOURCES
     camera.cpp
     bullet.cpp
     skills.cpp
+    userManager.cpp
     raygui_impl.cpp
 )
 

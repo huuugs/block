@@ -45,6 +45,8 @@ UIManager::UIManager()
     , levelSelectSelection(-1)
     , settingsSelection(-1)
     , logsSelection(-1)
+    , userMenuSelection(-1)
+    , userSelection(-1)
     , selectedLevel(-1)
     , mainFont(nullptr)
     , secondaryFont(nullptr)
@@ -68,6 +70,18 @@ void UIManager::init(Font* mFont, Font* sFont) {
     mainFont = mFont;
     secondaryFont = sFont;
     useCustomFont = (mainFont != nullptr && mainFont->texture.id != 0);
+
+    // Auto-detect system language on Android
+    #if defined(PLATFORM_ANDROID)
+    // Use JNI to get system locale
+    // Default to Chinese if system locale is zh, otherwise English
+    // This is a simple check - in production you'd want full locale support
+    const char* locale = getenv("LANG");  // Some Android environments set this
+    if (locale && (strstr(locale, "zh") || strstr(locale, "CN"))) {
+        language = Language::CHINESE;
+    }
+    // Note: For full Android locale detection, you'd need JNI calls to Java
+    #endif
 
     // CRITICAL: Set up raylib log callback to redirect all TraceLog to game log viewer
     SetTraceLogCallback([](int logLevel, const char* text, va_list args) -> void {
@@ -961,3 +975,87 @@ void UIManager::reloadFonts(Font* mainFont, Font* sFont) {
 }
 
 } // namespace BlockEater
+
+void UIManager::drawUserMenu(const UserManager* userManager) {
+    if (!userManager) {
+        logError("drawUserMenu: userManager is null");
+        return;
+    }
+
+    // Include userManager.h for User class definition
+    #include "userManager.h"
+
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
+    
+    // Draw title
+    const char* title = getText("USER SYSTEM", "用户系统");
+    int titleWidth = MeasureText(title, 40);
+    DrawText(title, (int)(centerX - titleWidth / 2), 80, 40, currentTheme->text);
+    
+    // Draw current user
+    const User* currentUser = userManager->getCurrentUser();
+    if (currentUser) {
+        char currentUserText[128];
+        snprintf(currentUserText, sizeof(currentUserText),
+                 getText("Current User: %s", "当前用户: %s"), currentUser->username);
+        int userTextWidth = MeasureText(currentUserText, 24);
+        DrawText(currentUserText, (int)(centerX - userTextWidth / 2), 140, 24, currentTheme->accent);
+    }
+    
+    // Draw user list
+    float startY = 200;
+    float buttonHeight = 60;
+    float buttonSpacing = 10;
+    
+    for (int i = 0; i < UserManager::MAX_USERS; i++) {
+        const User* user = userManager->getUser(i);
+        if (user && user->isValid) {
+            float y = startY + i * (buttonHeight + buttonSpacing);
+            
+            // Draw user button background
+            Rectangle buttonRect = {centerX - 200, y, 400, buttonHeight};
+            Color buttonColor = currentTheme->secondary;
+            
+            // Highlight current user
+            if (currentUser == user) {
+                buttonColor = currentTheme->primary;
+            }
+            
+            DrawRectangleRec(buttonRect, buttonColor);
+            DrawRectangleLinesEx(buttonRect, 2, currentTheme->accent);
+            
+            // Draw username
+            DrawText(user->username, (int)(centerX - 180), (int)(y + 20), 20, currentTheme->text);
+            
+            // Draw stats
+            char statsText[64];
+            snprintf(statsText, sizeof(statsText), "High Score: %d", user->totalScore);
+            DrawText(statsText, (int)(centerX + 50), (int)(y + 20), 16, currentTheme->text);
+            
+            // Check for click
+            int touchCount = GetTouchPointCount();
+            Vector2 pos = touchCount > 0 ? GetTouchPosition(0) : GetMousePosition();
+            
+            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) || touchCount == 0) {
+                if (CheckCollisionPointRec(pos, buttonRect)) {
+                    userSelection = i;
+                }
+            }
+        }
+    }
+    
+    // Draw Create New User button
+    float createY = startY + UserManager::MAX_USERS * (buttonHeight + buttonSpacing) + 20;
+    if (drawButton(centerX - 100, createY, 200, 60,
+                    getText("Create User", "创建用户"))) {
+        userMenuSelection = 1;  // Create
+    }
+    
+    // Draw Back button
+    float backY = createY + 80;
+    if (drawButton(centerX - 100, backY, 200, 60,
+                    getText("Back", "返回"))) {
+        userMenuSelection = 2;  // Back
+    }
+}

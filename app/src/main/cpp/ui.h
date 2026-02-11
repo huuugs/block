@@ -8,6 +8,9 @@
 
 namespace BlockEater {
 
+// Forward declaration
+class UserManager;
+
 // Language support
 enum class Language {
     ENGLISH,
@@ -66,7 +69,8 @@ enum class MenuPanel {
     GAME_OVER,
     LEVEL_SELECT,
     SETTINGS,
-    LOGS
+    LOGS,
+    USER_MENU
 };
 
 class UIManager {
@@ -131,6 +135,7 @@ public:
     void drawLevelSelect();
     void drawSettings();
     void drawLogs();
+    void drawUserMenu(const UserManager* userManager);
 
     // Logging system for debugging
     static void logInfo(const char* message);
@@ -144,6 +149,8 @@ public:
     int getLevelSelectSelection() const { return levelSelectSelection; }
     int getSettingsSelection() const { return settingsSelection; }
     int getLogsSelection() const { return logsSelection; }
+    int getUserMenuSelection() const { return userMenuSelection; }
+    int getUserSelection() const { return userSelection; }
     int getSelectedLevel() const { return selectedLevel; }
     
     void clearSelections() {
@@ -153,6 +160,8 @@ public:
         levelSelectSelection = -1;
         settingsSelection = -1;
         logsSelection = -1;
+        userMenuSelection = -1;
+        userSelection = -1;
         selectedLevel = -1;
     }
 
@@ -199,6 +208,8 @@ private:
     int levelSelectSelection;
     int settingsSelection;
     int logsSelection;
+    int userMenuSelection;
+    int userSelection;
     int selectedLevel;
 
     // Colors (deprecated, using themes now)

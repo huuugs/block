@@ -10,6 +10,7 @@
 #include "camera.h"
 #include "bullet.h"
 #include "skills.h"
+#include "userManager.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -25,6 +26,7 @@ Game::Game()
     , assets(nullptr)
     , camera(nullptr)
     , skillManager(nullptr)
+    , userManager(nullptr)
     , state(GameState::MENU)
     , previousState(GameState::MENU)
     , mode(GameMode::ENDLESS)
@@ -70,6 +72,10 @@ void Game::init() {
     skillManager = new SkillManager();
     skillManager->init();
 
+    // Initialize user manager
+    userManager = new UserManager();
+    userManager->init();
+
     // Create player
     player = new Player();
 }
@@ -105,6 +111,9 @@ void Game::update() {
         case GameState::SETTINGS:
             updateSettings();
             break;
+        case GameState::USER_MENU:
+            updateUserMenu();
+            break;
     }
 
     ui->update(deltaTime);
@@ -136,6 +145,9 @@ void Game::draw() {
             break;
         case GameState::SETTINGS:
             drawPaused();
+            break;
+        case GameState::USER_MENU:
+            drawUserMenu();
             break;
     }
 
@@ -914,3 +926,35 @@ void Game::checkCollisions() {
 
 // Note: Vector2Length and Vector2Normalize are defined as inline functions in game.h
 
+
+void Game::updateUserMenu() {
+    // User menu is handled by UI
+    int selection = ui->getUserMenuSelection();
+    int userSelection = ui->getUserSelection();
+
+    if (selection >= 0 || userSelection >= 0) {
+        if (userSelection >= 0 && userSelection < UserManager::MAX_USERS) {
+            // User selected - switch to this user
+            userManager->setCurrentUser(userSelection);
+            audio->playButtonClickSound();
+            state = GameState::MENU;
+            ui->resetTransition();
+        } else if (selection == 1) {
+            // Create new user - go to name input
+            audio->playButtonClickSound();
+            // TODO: Implement name input UI
+        } else if (selection == 2) {
+            // Back to main menu
+            audio->playButtonClickSound();
+            state = GameState::MENU;
+            ui->resetTransition();
+        }
+
+        ui->clearSelections();
+    }
+}
+
+void Game::drawUserMenu() {
+    // Draw user menu UI
+    ui->drawUserMenu(userManager);
+}
