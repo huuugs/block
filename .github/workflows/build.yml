@@ -91,7 +91,14 @@ jobs:
 
     - name: Build APK with Gradle
       run: |
+        set -o pipefail
         ./gradlew assembleDebug --no-daemon --no-build-cache --info --stacktrace 2>&1 | tee build-output.log
+        # Verify APK exists
+        if [ ! -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+          echo "ERROR: APK not found at expected location!"
+          exit 1
+        fi
+      shell: bash
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
