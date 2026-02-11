@@ -26,19 +26,9 @@ android {
         }
     }
 
-    // Signing configuration for consistent APK signing across builds
-    signingConfigs {
-        create("debug") {
-            storeFile = file("debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
-        }
-    }
-
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("debug")
+            // Use default debug signing
         }
         release {
             isMinifyEnabled = false
