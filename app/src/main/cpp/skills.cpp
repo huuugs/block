@@ -158,6 +158,7 @@ bool SkillManager::useSkill(SkillType type, Vector2 playerPos, Vector2 facingDir
             };
             shieldDirection = facingDir;
             shieldLevel = 1;  // Will be set based on player level
+            shieldTimeLeft = shieldDuration;  // CRITICAL FIX: Set shield duration!
             skill.use();
             return true;
         }

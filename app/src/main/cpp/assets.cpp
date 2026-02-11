@@ -276,7 +276,15 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         "返回主菜单"
         "技能4没有出现弧形防护罩"
         "选关卡的模式一进去就直接死了"
-        "ASCII测试中文字符测试";
+        "ASCII测试中文字符测试"
+        // Missing characters found in UI
+        "音量静音取消"           // Volume/Mute controls
+        "触摸左半屏移动"        // Touch controls
+        "经验系统显示条日志"     // Experience, System, Display, logs
+        "选择关卡摇杆像素"       // Select level, joystick, pixel
+        "退出到菜单再试一次"    // Quit to menu, try again
+        "思源黑体默认字体未知"  // Font names
+        "查看日志";             // View logs
 
     // Add ASCII range manually
     char allText[1024];

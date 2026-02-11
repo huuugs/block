@@ -234,7 +234,16 @@ void Game::updatePlaying() {
     spawnEnemies();
 
     // Update time remaining for time challenge mode
-    if (mode == GameMode::TIME_CHALLENGE || mode == GameMode::LEVEL) {
+    // For LEVEL mode, only check timeout if timeRemaining > 0 (has time limit)
+    if (mode == GameMode::TIME_CHALLENGE) {
+        timeRemaining -= deltaTime;
+        if (timeRemaining <= 0) {
+            timeRemaining = 0;
+            state = GameState::GAME_OVER;
+            audio->playDeathSound();
+        }
+    } else if (mode == GameMode::LEVEL && timeRemaining > 0) {
+        // Only check timeout for levels that have a time limit
         timeRemaining -= deltaTime;
         if (timeRemaining <= 0) {
             timeRemaining = 0;
@@ -597,7 +606,10 @@ void Game::drawPlaying() {
     ui->drawHUD(player);
     ui->drawScore(score);
 
-    if (mode == GameMode::TIME_CHALLENGE || mode == GameMode::LEVEL) {
+    if (mode == GameMode::TIME_CHALLENGE) {
+        ui->drawTimer(timeRemaining);
+    } else if (mode == GameMode::LEVEL && timeRemaining > 0) {
+        // Only draw timer for levels that have a time limit
         ui->drawTimer(timeRemaining);
     }
 
@@ -653,7 +665,15 @@ void Game::startGame(GameMode newMode) {
     if (mode == GameMode::TIME_CHALLENGE) {
         timeRemaining = 180.0f;  // 3 minutes
     } else if (mode == GameMode::LEVEL) {
-        timeRemaining = 0;  // Will be set by level definition
+        // CRITICAL FIX: Load time limit from level definition
+        // currentLevel is 1-based, LEVELS array is 0-based
+        // If timeLimit is 0, it means no time limit (infinite)
+        if (currentLevel >= 1 && currentLevel <= GameModeManager::LEVEL_COUNT) {
+            timeRemaining = GameModeManager::LEVELS[currentLevel - 1].timeLimit;
+        } else {
+            timeRemaining = 0;  // No time limit (infinite)
+        }
+        // Note: timeLimit = 0 means no time limit for that level
     }
 
     audio->playButtonClickSound();
