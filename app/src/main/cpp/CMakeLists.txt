@@ -39,6 +39,7 @@ set(GAME_SOURCES
     controls.cpp
     assets.cpp
     camera.cpp
+    raygui_impl.cpp
 )
 
 # Include raygui (header-only library)
