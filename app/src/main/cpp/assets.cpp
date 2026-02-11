@@ -324,18 +324,21 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
     if (fileExists) {
         TraceLog(LOG_INFO, TextFormat("Loading font from: %s", fontPath));
 
-        pixelFont = LoadFontEx(fontPath, fontSize, chineseCodepoints, codepointCount);
+        // CRITICAL FIX: Don't pass codepoints - let raylib auto-load all font glyphs
+        // Passing codepoints was preventing Chinese characters from being loaded
+        pixelFont = LoadFontEx(fontPath, fontSize, nullptr, 0);
+        TraceLog(LOG_INFO, "Loading font WITHOUT explicit codepoints - auto-detect mode");
 
         if (pixelFont.texture.id != 0) {
             TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded from %s", fontPath));
-            TraceLog(LOG_INFO, TextFormat("Font: ID=%u, size=%dx%d, codepoints=%d",
-                pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height, codepointCount));
+            TraceLog(LOG_INFO, TextFormat("Font: ID=%u, size=%dx%d, glyphs=%d",
+                pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height, pixelFont.glyphCount));
             TraceLog(LOG_INFO, TextFormat("Font baseSize: %d", pixelFont.baseSize));
 
             SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
             GenTextureMipmaps(&pixelFont.texture);
 
-            smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
+            smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), nullptr, 0);
             if (smallFont.texture.id != 0) {
                 SetTextureFilter(smallFont.texture, TEXTURE_FILTER_BILINEAR);
                 GenTextureMipmaps(&smallFont.texture);
@@ -364,16 +367,17 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         if (FileExists(path)) {
             TraceLog(LOG_INFO, TextFormat("Loading Android font: %s", path));
 
-            pixelFont = LoadFontEx(path, fontSize, chineseCodepoints, codepointCount);
+            // CRITICAL FIX: Don't pass codepoints - let raylib auto-load all font glyphs
+            pixelFont = LoadFontEx(path, fontSize, nullptr, 0);
             if (pixelFont.texture.id != 0) {
                 TraceLog(LOG_INFO, TextFormat("SUCCESS: Android font loaded from %s", path));
-                TraceLog(LOG_INFO, TextFormat("Font: ID=%u, size=%dx%d, codepoints=%d",
-                    pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height, codepointCount));
+                TraceLog(LOG_INFO, TextFormat("Font: ID=%u, size=%dx%d, glyphs=%d",
+                    pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height, pixelFont.glyphCount));
 
                 SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
                 GenTextureMipmaps(&pixelFont.texture);
 
-                smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
+                smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), nullptr, 0);
                 if (smallFont.texture.id != 0) {
                     SetTextureFilter(smallFont.texture, TEXTURE_FILTER_BILINEAR);
                     GenTextureMipmaps(&smallFont.texture);
