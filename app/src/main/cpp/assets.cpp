@@ -231,10 +231,10 @@ Texture2D AssetManager::GeneratePixelBackground() {
     return tex;
 }
 
-// LoadExternalFont using LoadCodepoints method (like the WeChat public account example)
+// LoadExternalFont using LoadFileData + LoadFontFromMemory method (like the WeChat public account example)
 bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
-    // IMPORTANT: Use LoadCodepoints() to automatically extract characters from string
-    // This is the method from the working example!
+    // CRITICAL FIX: On Android, LoadFontEx() cannot access assets directory directly
+    // We MUST use LoadFileData() + LoadFontFromMemory() method (like the working example)
 
     // Collect all Chinese text used in the game into one string
     const char* allChineseText =
@@ -285,7 +285,7 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         " !\"#$%%&'()*+,-./:;<=>?@[\\]^_`{|}~%s",
         allChineseText);
 
-    TraceLog(LOG_INFO, "=== LoadExternalFont START (LoadCodepoints method) ===");
+    TraceLog(LOG_INFO, "=== LoadExternalFont START (LoadFileData + LoadFontFromMemory method) ===");
 
     // Use LoadCodepoints to automatically extract characters from text
     int codepointCount = 0;
@@ -293,62 +293,73 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
 
     TraceLog(LOG_INFO, TextFormat("LoadCodepoints extracted %d characters from text", codepointCount));
 
-    // Try loading from the given path
-    if (FileExists(fontPath)) {
-        TraceLog(LOG_INFO, TextFormat("Loading font: %s with %d codepoints", fontPath, codepointCount));
-        pixelFont = LoadFontEx(fontPath, fontSize, codepoints, codepointCount);
+    // List of font paths to try
+    const char* fontPaths[] = {
+        "fonts/zpix.ttf",
+        "fonts/SourceHanSansCN-Regular.otf",
+        "fonts/vonwaon_pixel_12px.ttf",
+        "zpix.ttf",
+        "SourceHanSansCN-Regular.otf"
+    };
+    const int numPaths = sizeof(fontPaths) / sizeof(fontPaths[0]);
 
-        if (pixelFont.texture.id != 0) {
-            TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded! glyphs=%d (expected %d)",
+    // Try each font path
+    for (int i = 0; i < numPaths; i++) {
+        const char* path = fontPaths[i];
+
+        TraceLog(LOG_INFO, TextFormat("Trying font: %s", path));
+
+        // Load font file into memory (works on Android!)
+        int fileSize = 0;
+        unsigned char* fileData = LoadFileData(path, &fileSize);
+
+        if (fileData == nullptr || fileSize == 0) {
+            TraceLog(LOG_WARNING, TextFormat("LoadFileData failed for: %s", path));
+            continue;
+        }
+
+        TraceLog(LOG_INFO, TextFormat("LoadFileData SUCCESS: %d bytes loaded from %s", fileSize, path));
+
+        // Get file extension for font type detection
+        const char* ext = (strstr(path, ".ttf") != nullptr) ? ".ttf" : ".otf";
+
+        // Load font from memory using LoadFontFromMemory (like the WeChat example!)
+        pixelFont = LoadFontFromMemory(ext, fileData, fileSize, fontSize, codepoints, codepointCount);
+
+        // Free file data after loading
+        UnloadFileData(fileData);
+
+        if (pixelFont.texture.id != 0 && pixelFont.glyphCount > 100) {
+            TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded from memory! glyphs=%d (expected %d)",
                 pixelFont.glyphCount, codepointCount));
             SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
             GenTextureMipmaps(&pixelFont.texture);
 
-            smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), codepoints, codepointCount);
-            if (smallFont.texture.id != 0) {
-                SetTextureFilter(smallFont.texture, TEXTURE_FILTER_BILINEAR);
-                GenTextureMipmaps(&smallFont.texture);
-            } else {
-                smallFont = pixelFont;
-            }
+            // Load small font
+            fileData = LoadFileData(path, &fileSize);
+            if (fileData != nullptr) {
+                smallFont = LoadFontFromMemory(ext, fileData, fileSize, (int)(fontSize * 0.75f), codepoints, codepointCount);
+                UnloadFileData(fileData);
 
-            UnloadCodepoints(codepoints);
-            return true;
-        }
-    }
-
-    // On Android, try alternative paths
-    #if defined(PLATFORM_ANDROID)
-    const char* altPaths[] = {"fonts/zpix.ttf", "zpix.ttf",
-                               "fonts/SourceHanSansCN-Regular.otf", "SourceHanSansCN-Regular.otf"};
-
-    for (const char* path : altPaths) {
-        if (FileExists(path)) {
-            TraceLog(LOG_INFO, TextFormat("Loading Android font: %s", path));
-            pixelFont = LoadFontEx(path, fontSize, codepoints, codepointCount);
-            if (pixelFont.texture.id != 0) {
-                TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded! glyphs=%d (expected %d)",
-                    pixelFont.glyphCount, codepointCount));
-                SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
-                GenTextureMipmaps(&pixelFont.texture);
-
-                smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), codepoints, codepointCount);
                 if (smallFont.texture.id != 0) {
                     SetTextureFilter(smallFont.texture, TEXTURE_FILTER_BILINEAR);
                     GenTextureMipmaps(&smallFont.texture);
                 } else {
                     smallFont = pixelFont;
                 }
-
-                UnloadCodepoints(codepoints);
-                return true;
+            } else {
+                smallFont = pixelFont;
             }
+
+            UnloadCodepoints(codepoints);
+            return true;
+        } else {
+            TraceLog(LOG_WARNING, TextFormat("Font loaded but glyphCount too low: %d (need > 100)", pixelFont.glyphCount));
         }
     }
-    #endif
 
     UnloadCodepoints(codepoints);
-    TraceLog(LOG_ERROR, "Font loading failed!");
+    TraceLog(LOG_ERROR, "All font loading attempts failed!");
     return false;
 }
 
