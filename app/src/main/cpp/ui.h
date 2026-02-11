@@ -58,7 +58,8 @@ enum class MenuPanel {
     PAUSE_MENU,
     GAME_OVER,
     LEVEL_SELECT,
-    SETTINGS
+    SETTINGS,
+    LOGS
 };
 
 class UIManager {
@@ -115,6 +116,12 @@ public:
     void drawGameOverMenu(int score, int level);
     void drawLevelSelect();
     void drawSettings();
+    void drawLogs();
+
+    // Logging system for debugging
+    static void logInfo(const char* message);
+    static void logWarning(const char* message);
+    static void logError(const char* message);
 
     // Get button click results
     int getMainMenuSelection() const { return mainMenuSelection; }
@@ -122,6 +129,7 @@ public:
     int getGameOverSelection() const { return gameOverSelection; }
     int getLevelSelectSelection() const { return levelSelectSelection; }
     int getSettingsSelection() const { return settingsSelection; }
+    int getLogsSelection() const { return logsSelection; }
     int getSelectedLevel() const { return selectedLevel; }
     
     void clearSelections() {
@@ -130,10 +138,22 @@ public:
         gameOverSelection = -1;
         levelSelectSelection = -1;
         settingsSelection = -1;
+        logsSelection = -1;
         selectedLevel = -1;
     }
 
 private:
+    // Log buffer
+    static const int MAX_LOG_ENTRIES = 50;
+    static const int MAX_LOG_LENGTH = 256;
+    struct LogEntry {
+        char message[MAX_LOG_LENGTH];
+        int type;  // 0=info, 1=warning, 2=error
+    };
+    static LogEntry logBuffer[MAX_LOG_ENTRIES];
+    static int logIndex;
+    static int logCount;
+
     // Animations
     float menuAnimation;
     float hudAnimation;
@@ -161,6 +181,7 @@ private:
     int gameOverSelection;
     int levelSelectSelection;
     int settingsSelection;
+    int logsSelection;
     int selectedLevel;
 
     // Colors (deprecated, using themes now)

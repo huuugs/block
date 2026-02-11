@@ -2,6 +2,7 @@
 #include "player.h"
 #include <cstdio>
 #include <cmath>
+#include <cstring>
 
 namespace BlockEater {
 
@@ -18,6 +19,11 @@ Theme UIManager::themes[UIManager::NUM_THEMES] = {
     // Red Theme
     {{255, 120, 100, 255}, {180, 60, 50, 255}, {255, 220, 50, 255}, {40, 20, 20, 255}, {255, 255, 255, 255}, "Red"}
 };
+
+// Initialize static log buffer members
+UIManager::LogEntry UIManager::logBuffer[MAX_LOG_ENTRIES];
+int UIManager::logIndex = 0;
+int UIManager::logCount = 0;
 
 UIManager::UIManager()
     : menuAnimation(0)
@@ -36,6 +42,7 @@ UIManager::UIManager()
     , gameOverSelection(-1)
     , levelSelectSelection(-1)
     , settingsSelection(-1)
+    , logsSelection(-1)
     , selectedLevel(-1)
     , mainFont(nullptr)
     , secondaryFont(nullptr)
@@ -59,18 +66,30 @@ void UIManager::init(Font* mFont, Font* sFont) {
     mainFont = mFont;
     secondaryFont = sFont;
     useCustomFont = (mainFont != nullptr && mainFont->texture.id != 0);
-    
+
+    // Add initial logs for debugging
+    logInfo("UIManager initialized");
+
     // Initialize raygui style
     GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
     applyThemeToGui();
-    
+
     // Set raygui font if custom font is available
     if (useCustomFont) {
         GuiSetFont(*mainFont);
         TraceLog(LOG_INFO, "UIManager: Using custom font for Chinese support");
+        logInfo("Custom font loaded successfully");
+        logInfo("Font texture ID exists");
     } else {
         TraceLog(LOG_INFO, "UIManager: Using default font (limited Chinese support)");
+        logWarning("Using default font - Chinese may not display correctly");
     }
+
+    // Log current language setting
+    const char* langName = (language == Language::CHINESE) ? "Chinese" : "English";
+    char langMsg[64];
+    snprintf(langMsg, sizeof(langMsg), "Language set to: %s", langName);
+    logInfo(langMsg);
 }
 
 void UIManager::applyThemeToGui() {
@@ -177,6 +196,11 @@ void UIManager::draw(GameState state, GameMode mode) {
         case GameState::SETTINGS:
             drawSettings();
             break;
+    }
+
+    // Draw log panel if active
+    if (currentPanel == MenuPanel::LOGS) {
+        drawLogs();
     }
 
     // Draw fade overlay if transitioning
@@ -540,11 +564,17 @@ void UIManager::drawSettings() {
         settingsSelection = 4;  // Toggle mute
     }
 
+    // View Logs button
+    float logsY = startY + spacing * 4;
+    if (drawButton(valueX, logsY, buttonWidth, buttonHeight, getText("View Logs", "查看日志"))) {
+        settingsSelection = 6;  // View logs
+    }
+
     // Back button at bottom
     float backY = 550.0f;
     if (drawButton((float)(SCREEN_WIDTH / 2) - 100, backY, 200.0f, 50.0f,
                    getText("BACK", "返回"))) {
-        settingsSelection = 5;  // Back (moved to 5 to accommodate mute)
+        settingsSelection = 5;  // Back
     }
 }
 
@@ -715,6 +745,78 @@ void UIManager::drawPixelRect(int x, int y, int width, int height, Color color, 
 
 void UIManager::drawPixelText(const char* text, int x, int y, int fontSize, Color color) {
     drawTextWithFont(text, x, y, fontSize, color);
+}
+
+// Log functions
+void UIManager::logInfo(const char* message) {
+    int idx = logIndex % MAX_LOG_ENTRIES;
+    logCount = (logCount < MAX_LOG_ENTRIES) ? logCount + 1 : MAX_LOG_ENTRIES;
+    logIndex++;
+    snprintf(logBuffer[idx].message, MAX_LOG_LENGTH, "[INFO] %s", message);
+    logBuffer[idx].type = 0;
+}
+
+void UIManager::logWarning(const char* message) {
+    int idx = logIndex % MAX_LOG_ENTRIES;
+    logCount = (logCount < MAX_LOG_ENTRIES) ? logCount + 1 : MAX_LOG_ENTRIES;
+    logIndex++;
+    snprintf(logBuffer[idx].message, MAX_LOG_LENGTH, "[WARN] %s", message);
+    logBuffer[idx].type = 1;
+}
+
+void UIManager::logError(const char* message) {
+    int idx = logIndex % MAX_LOG_ENTRIES;
+    logCount = (logCount < MAX_LOG_ENTRIES) ? logCount + 1 : MAX_LOG_ENTRIES;
+    logIndex++;
+    snprintf(logBuffer[idx].message, MAX_LOG_LENGTH, "[ERROR] %s", message);
+    logBuffer[idx].type = 2;
+}
+
+void UIManager::drawLogs() {
+    // Dark background for logs
+    drawMenuBackground();
+
+    // Title
+    const char* title = getText("SYSTEM LOGS", "系统日志");
+    int fontSize = 40;
+    int titleWidth = measureTextWithFont(title, fontSize);
+    drawTextWithFont(title, SCREEN_WIDTH / 2 - titleWidth / 2, 50, fontSize, currentTheme->text);
+
+    // Draw log entries
+    float startY = 120;
+    float lineHeight = 20;
+    int displayCount = (logCount < MAX_LOG_ENTRIES) ? logCount : MAX_LOG_ENTRIES;
+
+    // Scroll to show newest logs first
+    int startIdx = (logIndex - displayCount + MAX_LOG_ENTRIES) % MAX_LOG_ENTRIES;
+    if (startIdx < 0) startIdx += MAX_LOG_ENTRIES;
+
+    for (int i = 0; i < displayCount; i++) {
+        int idx = (startIdx + i) % MAX_LOG_ENTRIES;
+        float y = startY + i * lineHeight;
+
+        // Color based on log type
+        Color logColor = WHITE;
+        if (logBuffer[idx].type == 1) logColor = {255, 200, 100, 255};  // Warning - yellow
+        if (logBuffer[idx].type == 2) logColor = {255, 100, 100, 255};  // Error - red
+
+        drawTextWithFont(logBuffer[idx].message, 20, (int)y, 14, logColor);
+    }
+
+    // Draw log count info
+    char countText[64];
+    snprintf(countText, sizeof(countText), getText("Showing %d/%d logs", "显示 %d/%d 条日志").c_str(),
+             displayCount, displayCount);
+    drawTextWithFont(countText, 20, SCREEN_HEIGHT - 80, 14, {150, 150, 150, 255});
+
+    // Back button
+    float backButtonWidth = 200.0f;
+    float backButtonHeight = 50.0f;
+    if (drawButton((float)(SCREEN_WIDTH / 2) - 100, SCREEN_HEIGHT - 60,
+                   backButtonWidth, backButtonHeight,
+                   getText("BACK", "返回"))) {
+        logsSelection = 0;  // Back
+    }
 }
 
 } // namespace BlockEater

@@ -368,10 +368,11 @@ void Game::updatePaused() {
 
 void Game::updateSettings() {
     int selection = ui->getSettingsSelection();
-    
+    int logsSelection = ui->getLogsSelection();
+
     if (selection >= 0) {
         audio->playButtonClickSound();
-        
+
         switch (selection) {
             case 0:  // Toggle Language
                 ui->setLanguage(ui->getLanguage() == Language::ENGLISH ? Language::CHINESE : Language::ENGLISH);
@@ -399,8 +400,18 @@ void Game::updateSettings() {
                 state = previousState;
                 ui->resetTransition();
                 break;
+            case 6:  // View Logs
+                ui->setCurrentPanel(MenuPanel::LOGS);
+                break;
         }
-        
+
+        ui->clearSelections();
+    }
+
+    // Handle logs panel back button
+    if (logsSelection >= 0) {
+        audio->playButtonClickSound();
+        ui->setCurrentPanel(MenuPanel::SETTINGS);  // Return to settings
         ui->clearSelections();
     }
 }
