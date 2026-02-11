@@ -269,6 +269,9 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
             0x80CC, 0x666F,                           // 背景
             0x751F, 0x547D,                           // 生命 (HP label)
             0x80FD, 0x91CF,                           // 能量 (Energy label)
+            0x7CFB, 0x7EDF,                           // 系统 - for log viewer title
+            0x65E5, 0x5FD7,                           // 日志 - for log viewer title
+            0x6761,                                   // 条 - for "条日志"
         };
 
         int chineseCharCount = sizeof(gameChineseChars) / sizeof(gameChineseChars[0]);
