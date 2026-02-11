@@ -68,6 +68,29 @@ void UIManager::init(Font* mFont, Font* sFont) {
     secondaryFont = sFont;
     useCustomFont = (mainFont != nullptr && mainFont->texture.id != 0);
 
+    // CRITICAL: Set up raylib log callback to redirect all TraceLog to game log viewer
+    SetTraceLogCallback([](int logLevel, const char* text, void* userData) {
+        // Redirect all raylib logs to game's log system
+        switch (logLevel) {
+            case LOG_INFO:
+                UIManager::logInfo(text);
+                break;
+            case LOG_WARNING:
+                UIManager::logWarning(text);
+                break;
+            case LOG_ERROR:
+                UIManager::logError(text);
+                break;
+            case LOG_DEBUG:
+            case LOG_NONE:
+            default:
+                UIManager::logInfo(text);
+                break;
+        }
+    }, nullptr);
+
+    logInfo("=== UI INIT START - Log capturing enabled ===");
+
     // Add initial logs for debugging
     logInfo("UIManager initialized");
 
