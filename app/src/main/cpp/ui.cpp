@@ -299,9 +299,30 @@ void UIManager::drawMainMenu() {
 
     // TEST: Draw Chinese characters directly at top of screen
     if (mainFont != nullptr && mainFont->glyphCount > 100) {
-        const char* testText = "测试中文: 生命能量";
-        DrawTextEx(*mainFont, testText, (Vector2){10, 10}, 24, 2, GREEN);
-        DrawTextEx(*mainFont, "方块吞噬者", (Vector2){10, 40}, 24, 2, YELLOW);
+        // Test 1: ASCII (should work)
+        DrawTextEx(*mainFont, "TEST ASCII", (Vector2){10, 10}, 24, 2, GREEN);
+
+        // Test 2: Try loading a Chinese character using its glyph index
+        // First, let's see if we can find Chinese glyphs in the font
+        int chineseCharFound = 0;
+
+        // Check if any Chinese glyphs exist (glyph index > 95 for Chinese)
+        for (int i = 0; i < mainFont->glyphCount; i++) {
+            if (mainFont->glyphs[i].value > 127) {
+                chineseCharFound++;
+            }
+        }
+
+        if (chineseCharFound > 0) {
+            char info[64];
+            snprintf(info, sizeof(info), "Found %d Chinese glyphs", chineseCharFound);
+            DrawTextEx(*mainFont, info, (Vector2){10, 40}, 18, 1, YELLOW);
+        } else {
+            DrawTextEx(*mainFont, "NO CHINESE GLYPHS FOUND!", (Vector2){10, 40}, 18, 1, RED);
+        }
+
+        // Test 3: Try to draw a simple Chinese character
+        DrawTextEx(*mainFont, "中文", (Vector2){10, 70}, 24, 2, WHITE);
     }
 
     // Animated title
