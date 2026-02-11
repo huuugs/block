@@ -33,6 +33,8 @@ set(GAME_SOURCES
     controls.cpp
     assets.cpp
     camera.cpp
+    bullet.cpp
+    skills.cpp
     raygui_impl.cpp
 )
 

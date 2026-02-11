@@ -73,6 +73,8 @@ class AudioManager;
 class ControlSystem;
 class AssetManager;
 class GameCamera;
+class Bullet;
+class SkillManager;
 
 // Main Game class
 class Game {
@@ -100,12 +102,14 @@ public:
     // Game objects
     Player* player;
     std::vector<Enemy*> enemies;
+    std::vector<Bullet*> bullets;
     ParticleSystem* particles;
     UIManager* ui;
     AudioManager* audio;
     ControlSystem* controls;
     AssetManager* assets;
     GameCamera* camera;
+    SkillManager* skillManager;
 
 private:
     GameState state;

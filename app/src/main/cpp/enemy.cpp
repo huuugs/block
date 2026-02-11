@@ -173,25 +173,25 @@ void Enemy::checkBounds() {
     int halfSize = size / 2;
 
     if (type == EnemyType::BOUNCING) {
-        if (position.x < halfSize || position.x > SCREEN_WIDTH - halfSize) {
+        if (position.x < halfSize || position.x > WORLD_WIDTH - halfSize) {
             velocity.x = -velocity.x;
-            position.x = fmaxf(halfSize, fminf(SCREEN_WIDTH - halfSize, position.x));
+            position.x = fmaxf(halfSize, fminf(WORLD_WIDTH - halfSize, position.x));
         }
-        if (position.y < halfSize || position.y > SCREEN_HEIGHT - halfSize) {
+        if (position.y < halfSize || position.y > WORLD_HEIGHT - halfSize) {
             velocity.y = -velocity.y;
-            position.y = fmaxf(halfSize, fminf(SCREEN_HEIGHT - halfSize, position.y));
+            position.y = fmaxf(halfSize, fminf(WORLD_HEIGHT - halfSize, position.y));
         }
     } else {
         // Wrap around for floating enemies
-        if (position.x < -size) position.x = SCREEN_WIDTH + size;
-        if (position.x > SCREEN_WIDTH + size) position.x = -size;
-        if (position.y < -size) position.y = SCREEN_HEIGHT + size;
-        if (position.y > SCREEN_HEIGHT + size) position.y = -size;
+        if (position.x < -size) position.x = WORLD_WIDTH + size;
+        if (position.x > WORLD_WIDTH + size) position.x = -size;
+        if (position.y < -size) position.y = WORLD_HEIGHT + size;
+        if (position.y > WORLD_HEIGHT + size) position.y = -size;
     }
 
-    // Clamp position
-    position.x = fmaxf(halfSize, fminf(SCREEN_WIDTH - halfSize, position.x));
-    position.y = fmaxf(halfSize, fminf(SCREEN_HEIGHT - halfSize, position.y));
+    // Clamp position to world bounds
+    position.x = fmaxf(halfSize, fminf(WORLD_WIDTH - halfSize, position.x));
+    position.y = fmaxf(halfSize, fminf(WORLD_HEIGHT - halfSize, position.y));
 }
 
 } // namespace BlockEater

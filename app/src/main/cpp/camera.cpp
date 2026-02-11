@@ -9,8 +9,9 @@ GameCamera::~GameCamera() {
 }
 
 void GameCamera::init() {
-    camera.target = {0, 0};
-    camera.offset = {0, 0};
+    // Start at center of world (where player spawns)
+    camera.target = {WORLD_WIDTH / 2.0f, WORLD_HEIGHT / 2.0f};
+    camera.offset = {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
     camera.rotation = 0.0f;
     camera.zoom = 1.0f;
     smoothFactor = 5.0f;
@@ -24,9 +25,18 @@ void GameCamera::update(Vector2 targetPosition, float dt) {
     camera.target.x += (target.x - currentTarget.x) * smoothFactor * dt;
     camera.target.y += (target.y - currentTarget.y) * smoothFactor * dt;
 
+    // Clamp camera to world bounds (keep camera within world)
+    float halfWidth = SCREEN_WIDTH / 2.0f;
+    float halfHeight = SCREEN_HEIGHT / 2.0f;
+
+    if (camera.target.x < halfWidth) camera.target.x = halfWidth;
+    if (camera.target.x > WORLD_WIDTH - halfWidth) camera.target.x = WORLD_WIDTH - halfWidth;
+    if (camera.target.y < halfHeight) camera.target.y = halfHeight;
+    if (camera.target.y > WORLD_HEIGHT - halfHeight) camera.target.y = WORLD_HEIGHT - halfHeight;
+
     // Keep camera centered on screen
-    camera.offset.x = 640.0f;  // SCREEN_WIDTH / 2
-    camera.offset.y = 360.0f;  // SCREEN_HEIGHT / 2
+    camera.offset.x = halfWidth;
+    camera.offset.y = halfHeight;
 }
 
 void GameCamera::apply() {

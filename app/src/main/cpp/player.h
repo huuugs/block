@@ -6,7 +6,7 @@
 
 namespace BlockEater {
 
-// Player level stats
+// Player level stats (expanded to 15 levels)
 struct LevelStats {
     int size;
     int maxHealth;
@@ -16,15 +16,24 @@ struct LevelStats {
 };
 
 static constexpr LevelStats LEVEL_STATS[] = {
-    {30, 100, 0,   {0, 255, 0, 255}, 200},   // Level 1 - Green
-    {40, 200, 5,   {0, 255, 255, 255}, 190}, // Level 2 - Cyan
-    {50, 350, 10,  {0, 100, 255, 255}, 180}, // Level 3 - Blue
-    {65, 550, 15,  {150, 0, 255, 255}, 170}, // Level 4 - Purple
-    {80, 800, 20,  {255, 0, 150, 255}, 160}, // Level 5 - Pink
-    {100, 1100, 30, {255, 215, 0, 255}, 150} // Level 6 - Gold
+    {30, 100, 0,   {144, 238, 144, 255}, 200},   // Level 1 - Light Green
+    {35, 150, 2,   {0, 255, 0, 255}, 195},       // Level 2 - Green
+    {40, 220, 4,   {0, 255, 127, 255}, 190},     // Level 3 - Spring Green
+    {45, 300, 6,   {0, 250, 154, 255}, 185},     // Level 4 - Medium Spring Green
+    {50, 400, 8,   {0, 255, 255, 255}, 180},     // Level 5 - Cyan
+    {56, 520, 10,  {0, 191, 255, 255}, 175},     // Level 6 - Deep Sky Blue
+    {62, 660, 12,  {30, 144, 255, 255}, 170},    // Level 7 - Dodger Blue
+    {68, 820, 15,  {65, 105, 225, 255}, 165},    // Level 8 - Royal Blue
+    {75, 1000, 18, {138, 43, 226, 255}, 160},    // Level 9 - Blue Violet
+    {82, 1200, 21, {148, 0, 211, 255}, 155},     // Level 10 - Dark Violet
+    {90, 1420, 24, {255, 0, 255, 255}, 150},     // Level 11 - Magenta
+    {98, 1660, 27, {255, 20, 147, 255}, 145},    // Level 12 - Deep Pink
+    {106, 1920, 30, {255, 69, 0, 255}, 140},     // Level 13 - Orange Red
+    {115, 2200, 33, {255, 140, 0, 255}, 135},    // Level 14 - Dark Orange
+    {125, 2500, 36, {255, 215, 0, 255}, 130}     // Level 15 - Gold
 };
 
-static constexpr int MAX_LEVEL = 6;
+static constexpr int MAX_LEVEL = 15;
 
 class Player {
 public:

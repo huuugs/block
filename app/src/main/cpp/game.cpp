@@ -8,6 +8,8 @@
 #include "controls.h"
 #include "assets.h"
 #include "camera.h"
+#include "bullet.h"
+#include "skills.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -22,6 +24,7 @@ Game::Game()
     , controls(nullptr)
     , assets(nullptr)
     , camera(nullptr)
+    , skillManager(nullptr)
     , state(GameState::MENU)
     , previousState(GameState::MENU)
     , mode(GameMode::ENDLESS)
@@ -59,6 +62,10 @@ void Game::init() {
     // Initialize camera
     camera = new GameCamera();
     camera->init();
+
+    // Initialize skill manager
+    skillManager = new SkillManager();
+    skillManager->init();
 
     // Create player
     player = new Player();
@@ -140,6 +147,12 @@ void Game::shutdown() {
     }
     enemies.clear();
 
+    // Clear bullets
+    for (auto* bullet : bullets) {
+        delete bullet;
+    }
+    bullets.clear();
+
     // Delete managers
     delete player;
     delete particles;
@@ -148,6 +161,7 @@ void Game::shutdown() {
     delete controls;
     delete assets;
     delete camera;
+    delete skillManager;
 }
 
 void Game::updateMenu() {
@@ -196,11 +210,29 @@ void Game::updatePlaying() {
         enemy->update(deltaTime, player->getPosition());
     }
 
+    // Update bullets
+    for (auto* bullet : bullets) {
+        bullet->update(deltaTime);
+    }
+
+    // Update skill manager
+    skillManager->update(deltaTime);
+
     // Check collisions
     checkCollisions();
 
     // Spawn enemies
     spawnEnemies();
+
+    // Update time remaining for time challenge mode
+    if (mode == GameMode::TIME_CHALLENGE || mode == GameMode::LEVEL) {
+        timeRemaining -= deltaTime;
+        if (timeRemaining <= 0) {
+            timeRemaining = 0;
+            state = GameState::GAME_OVER;
+            audio->playDeathSound();
+        }
+    }
 
     // Check game over
     if (player->getHealth() <= 0) {
@@ -213,6 +245,68 @@ void Game::updatePlaying() {
 
     // Update UI
     ui->update(deltaTime);
+
+    // Check for skill button clicks (bottom-right corner)
+    int touchCount = GetTouchPointCount();
+    if (touchCount > 0 || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        Vector2 pos = (touchCount > 0) ? GetTouchPosition(0) : GetMousePosition();
+
+        // Skill button area: bottom-right
+        float buttonSize = 60.0f;
+        float startX = SCREEN_WIDTH - 280.0f;
+        float startY = SCREEN_HEIGHT - 80.0f;
+        float spacing = 70.0f;
+
+        for (int i = 0; i < 4; i++) {
+            float x = startX + i * spacing;
+            if (pos.x >= x && pos.x <= x + buttonSize &&
+                pos.y >= startY && pos.y <= startY + buttonSize) {
+                // Skill button clicked
+                SkillType skillType = (SkillType)i;
+                if (skillManager->canUseSkill(skillType)) {
+                    Vector2 facingDir = player->getFacingDirection();
+                    int playerHP = player->getHealth();
+
+                    if (skillType == SkillType::BLINK) {
+                        // Handle blink - move player
+                        float blinkDist = player->getSize() * 5.0f;
+                        Vector2 newPos = {
+                            player->getPosition().x + facingDir.x * blinkDist,
+                            player->getPosition().y + facingDir.y * blinkDist
+                        };
+                        // Clamp to world bounds
+                        if (newPos.x < player->getSize()) newPos.x = player->getSize();
+                        if (newPos.x > WORLD_WIDTH - player->getSize()) newPos.x = WORLD_WIDTH - player->getSize();
+                        if (newPos.y < player->getSize()) newPos.y = player->getSize();
+                        if (newPos.y > WORLD_HEIGHT - player->getSize()) newPos.y = WORLD_HEIGHT - player->getSize();
+                        player->setPosition(newPos);
+                        skillManager->useSkill(skillType, newPos, facingDir, player->getSize(), playerHP);
+                    } else if (skillType == SkillType::SHOOT) {
+                        // Handle shoot - create bullet and consume HP
+                        int hpCost = 20;
+                        int currentHP = player->getHealth();
+                        if (currentHP > hpCost) {
+                            player->takeDamage(hpCost);
+                            int damage = hpCost * 3;
+                            Bullet* bullet = new Bullet(player->getPosition(), facingDir, damage, 0);
+                            bullets.push_back(bullet);
+                            skillManager->useSkill(skillType, player->getPosition(), facingDir, player->getSize(), currentHP);
+                        }
+                    } else if (skillType == SkillType::SHIELD) {
+                        // Handle shield - set shield duration based on player level
+                        int playerLevel = player->getLevel();
+                        float shieldDuration = 1.0f + (playerLevel - 1) * 1.0f;  // 1-15 seconds
+                        if (shieldDuration > 15.0f) shieldDuration = 15.0f;
+                        skillManager->setShieldDuration(shieldDuration);
+                        skillManager->useSkill(skillType, player->getPosition(), facingDir, player->getSize(), playerHP);
+                    } else {
+                        skillManager->useSkill(skillType, player->getPosition(), facingDir, player->getSize(), playerHP);
+                    }
+                }
+                break;  // Only handle one button click at a time
+            }
+        }
+    }
 
     // Check for pause button click (top right corner)
     if ((GetTouchPointCount() > 0) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -365,12 +459,32 @@ void Game::drawPlaying() {
     // Apply camera for world rendering
     camera->apply();
 
+    // Draw shield if active
+    if (skillManager->isShieldActive()) {
+        Vector2 shieldPos = skillManager->getShieldPosition();
+        Vector2 shieldDir = skillManager->getShieldDirection();
+        int shieldLevel = skillManager->getShieldLevel();
+
+        // Draw arc shield (45° angle)
+        float shieldRadius = 80.0f;
+        float startAngle = atan2f(shieldDir.y, shieldDir.x) - 22.5f * DEG2RAD;
+        float endAngle = atan2f(shieldDir.y, shieldDir.x) + 22.5f * DEG2RAD;
+
+        DrawCircleSector((Vector2){shieldPos.x, shieldPos.y}, shieldRadius, startAngle, endAngle, 30, {100, 255, 100, 150});
+        DrawCircleSectorLines((Vector2){shieldPos.x, shieldPos.y}, shieldRadius, startAngle, endAngle, 30, {150, 255, 150, 255});
+    }
+
     // Draw player
     player->draw();
 
     // Draw enemies
     for (auto* enemy : enemies) {
         enemy->draw();
+    }
+
+    // Draw bullets
+    for (auto* bullet : bullets) {
+        bullet->draw();
     }
 
     // End camera mode (switch back to screen space for UI)
@@ -383,6 +497,15 @@ void Game::drawPlaying() {
     if (mode == GameMode::TIME_CHALLENGE || mode == GameMode::LEVEL) {
         ui->drawTimer(timeRemaining);
     }
+
+    // Draw FPS counter (top-left corner)
+    int fps = (int)GetFPS();
+    char fpsText[32];
+    sprintf(fpsText, "FPS: %d", fps);
+    DrawText(fpsText, 10, 10, 16, {255, 255, 255, 200});
+
+    // Draw skill buttons
+    skillManager->draw();
 
     // Draw controls (includes pause button)
     controls->draw();
@@ -452,64 +575,85 @@ void Game::resetGame() {
 }
 
 void Game::spawnEnemies() {
-    // Keep a minimum number of enemies
-    int minEnemies = 5 + (int)(gameTime / 30.0f);
-    minEnemies = (minEnemies > 30) ? 30 : minEnemies;
+    // Keep a minimum number of enemies - increased significantly
+    int minEnemies = 20 + (int)(gameTime / 10.0f);  // More enemies, faster increase
+    minEnemies = (minEnemies > 100) ? 100 : minEnemies;  // Higher cap
 
     if ((int)enemies.size() < minEnemies) {
-        // Use player position directly for spawning
-        Vector2 playerPos = player->getPosition();
+        // Spawn multiple enemies at once for better gameplay
+        int spawnCount = 3 + (int)(gameTime / 60.0f);  // Spawn in groups
+        if (spawnCount > 10) spawnCount = 10;
 
-        // Spawn new enemy around player with safe distance
-        int side = rand() % 4;
-        Vector2 pos;
-        float minSpawnDist = player->getSize() + 100.0f;  // Minimum safe distance
-        float maxSpawnDist = minSpawnDist + 200.0f;     // Maximum spawn distance
-        float spawnDist = minSpawnDist + (float)(rand() % (int)(maxSpawnDist - minSpawnDist));
+        for (int i = 0; i < spawnCount && (int)enemies.size() < minEnemies; i++) {
+            // Use player position directly for spawning
+            Vector2 playerPos = player->getPosition();
 
-        switch (side) {
-            case 0:  // Top
-                pos = {playerPos.x + (float)(rand() % 200 - 100), playerPos.y - spawnDist};
-                break;
-            case 1:  // Bottom
-                pos = {playerPos.x + (float)(rand() % 200 - 100), playerPos.y + spawnDist};
-                break;
-            case 2:  // Left
-                pos = {playerPos.x - spawnDist, playerPos.y + (float)(rand() % 200 - 100)};
-                break;
-            case 3:  // Right
-                pos = {playerPos.x + spawnDist, playerPos.y + (float)(rand() % 200 - 100)};
-                break;
+            // Spawn new enemy around player with safe distance
+            int side = rand() % 4;
+            Vector2 pos;
+            float minSpawnDist = player->getSize() + 150.0f;  // Increased safe distance
+            float maxSpawnDist = minSpawnDist + 400.0f;     // Larger spawn area
+            float spawnDist = minSpawnDist + (float)(rand() % (int)(maxSpawnDist - minSpawnDist));
+
+            switch (side) {
+                case 0:  // Top
+                    pos = {playerPos.x + (float)(rand() % 400 - 200), playerPos.y - spawnDist};
+                    break;
+                case 1:  // Bottom
+                    pos = {playerPos.x + (float)(rand() % 400 - 200), playerPos.y + spawnDist};
+                    break;
+                case 2:  // Left
+                    pos = {playerPos.x - spawnDist, playerPos.y + (float)(rand() % 400 - 200)};
+                    break;
+                case 3:  // Right
+                    pos = {playerPos.x + spawnDist, playerPos.y + (float)(rand() % 400 - 200)};
+                    break;
+            }
+
+            // Clamp to world bounds
+            if (pos.x < 100) pos.x = 100;
+            if (pos.x > WORLD_WIDTH - 100) pos.x = (float)WORLD_WIDTH - 100;
+            if (pos.y < 100) pos.y = 100;
+            if (pos.y > WORLD_HEIGHT - 100) pos.y = (float)WORLD_HEIGHT - 100;
+
+            // Determine enemy type - add more small food pellets
+            EnemyType type = EnemyType::FLOATING;
+            int typeRoll = rand() % 100;
+            int playerLevel = player->getLevel();
+
+            // 30% chance for small food pellets (always smaller than player)
+            if (typeRoll < 30) {
+                type = EnemyType::STATIONARY;  // Food pellets are stationary
+            } else if (playerLevel >= 2) {
+                if (typeRoll < 50) type = EnemyType::CHASING;
+                else if (typeRoll < 70) type = EnemyType::BOUNCING;
+                else type = EnemyType::STATIONARY;
+            } else {
+                if (typeRoll < 40) type = EnemyType::STATIONARY;
+                else if (typeRoll < 60) type = EnemyType::BOUNCING;
+            }
+
+            // Determine size - mix of food pellets and dangerous enemies
+            int playerSize = player->getSize();
+            int minEnemySize, maxEnemySize;
+
+            if (typeRoll < 30) {
+                // Food pellets - smaller than player
+                minEnemySize = 10;
+                maxEnemySize = playerSize - 5;
+                if (maxEnemySize < 10) maxEnemySize = 10;
+            } else {
+                // Dangerous enemies - can be larger or smaller
+                minEnemySize = playerSize - 15;
+                maxEnemySize = playerSize + 40;
+                if (minEnemySize < 15) minEnemySize = 15;
+            }
+
+            int size = minEnemySize + (rand() % (maxEnemySize - minEnemySize));
+
+            Enemy* enemy = new Enemy(type, pos, size);
+            enemies.push_back(enemy);
         }
-
-        // Clamp to world bounds
-        if (pos.x < 100) pos.x = 100;
-        if (pos.x > WORLD_WIDTH - 100) pos.x = (float)WORLD_WIDTH - 100;
-        if (pos.y < 100) pos.y = 100;
-        if (pos.y > WORLD_HEIGHT - 100) pos.y = (float)WORLD_HEIGHT - 100;
-
-        // Determine enemy type based on player level
-        EnemyType type = EnemyType::FLOATING;
-        int typeRoll = rand() % 100;
-
-        if (player->getLevel() >= 2) {
-            if (typeRoll < 20) type = EnemyType::CHASING;
-            else if (typeRoll < 40) type = EnemyType::BOUNCING;
-            else if (typeRoll < 60) type = EnemyType::STATIONARY;
-        } else {
-            if (typeRoll < 30) type = EnemyType::STATIONARY;
-            else if (typeRoll < 50) type = EnemyType::BOUNCING;
-        }
-
-        // Determine size - ensure enemies are not too small for current player level
-        int playerSize = player->getSize();
-        int minEnemySize = playerSize - 10;
-        int maxEnemySize = playerSize + 30;
-        if (minEnemySize < 15) minEnemySize = 15;
-        int size = minEnemySize + (rand() % (maxEnemySize - minEnemySize));
-
-        Enemy* enemy = new Enemy(type, pos, size);
-        enemies.push_back(enemy);
     }
 }
 
@@ -517,6 +661,69 @@ void Game::checkCollisions() {
     int playerSize = player->getSize();
     Vector2 playerPos = player->getPosition();
 
+    // Check bullet-enemy collisions
+    auto bulletIt = bullets.begin();
+    while (bulletIt != bullets.end()) {
+        Bullet* bullet = *bulletIt;
+        if (!bullet->isAlive()) {
+            delete bullet;
+            bulletIt = bullets.erase(bulletIt);
+            continue;
+        }
+
+        Vector2 bulletPos = bullet->getPosition();
+        int bulletSize = bullet->getSize();
+
+        // Check collision with enemies
+        bool bulletHit = false;
+        for (auto* enemy : enemies) {
+            if (!enemy->isAlive()) continue;
+
+            Vector2 enemyPos = enemy->getPosition();
+            int enemySize = enemy->getSize();
+
+            float dx = fabs(bulletPos.x - enemyPos.x);
+            float dy = fabs(bulletPos.y - enemyPos.y);
+            float combinedHalfSize = (bulletSize + enemySize) / 2.0f;
+
+            if (dx < combinedHalfSize && dy < combinedHalfSize) {
+                // Bullet hit enemy
+                int damage = bullet->getDamage();
+                enemy->takeDamage(damage);
+                bullet->kill();
+                bulletHit = true;
+
+                // Spawn hit effect
+                particles->spawnPixelExplosion(bulletPos, {255, 255, 0, 255}, 5);
+                particles->spawnDamageNumber(enemyPos, damage, true);
+
+                if (!enemy->isAlive()) {
+                    score += damage * 5;
+                    player->addExperience(damage / 2);
+                }
+                break;
+            }
+        }
+
+        if (!bulletHit) {
+            ++bulletIt;
+        } else {
+            // Bullet was removed, iterator is already at next element
+        }
+    }
+
+    // Clean up dead bullets
+    bulletIt = bullets.begin();
+    while (bulletIt != bullets.end()) {
+        if (!(*bulletIt)->isAlive()) {
+            delete *bulletIt;
+            bulletIt = bullets.erase(bulletIt);
+        } else {
+            ++bulletIt;
+        }
+    }
+
+    // Check player-enemy collisions
     auto it = enemies.begin();
     while (it != enemies.end()) {
         Enemy* enemy = *it;
@@ -557,7 +764,7 @@ void Game::checkCollisions() {
 
                 enemy->kill();
             } else {
-                // Enemy hurts player
+                // Enemy hurts player - check for rotation skill (damage reduction)
                 int damage = enemySize / 3;
                 player->takeDamage(damage);
                 audio->playHitSound();
