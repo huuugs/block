@@ -71,6 +71,22 @@ void UIManager::init(Font* mFont, Font* sFont) {
     // Add initial logs for debugging
     logInfo("UIManager initialized");
 
+    // Log detailed font information
+    if (mainFont != nullptr) {
+        char fontInfo[128];
+        snprintf(fontInfo, sizeof(fontInfo), "Font ID: %u, size: %dx%d, baseSize: %d",
+            mainFont->texture.id, mainFont->texture.width, mainFont->texture.height, mainFont->baseSize);
+        logInfo(fontInfo);
+
+        if (mainFont->texture.id == 1 || mainFont->texture.id == 0) {
+            logWarning("Font texture ID is 0 or 1 (likely default font - NO CHINESE)");
+        } else {
+            logInfo("Custom font texture loaded (should support Chinese)");
+        }
+    } else {
+        logError("Font pointer is NULL!");
+    }
+
     // Initialize raygui style
     GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
     applyThemeToGui();
@@ -79,8 +95,6 @@ void UIManager::init(Font* mFont, Font* sFont) {
     if (useCustomFont) {
         GuiSetFont(*mainFont);
         TraceLog(LOG_INFO, "UIManager: Using custom font for Chinese support");
-        logInfo("Custom font loaded successfully");
-        logInfo("Font texture ID exists");
     } else {
         TraceLog(LOG_INFO, "UIManager: Using default font (limited Chinese support)");
         logWarning("Using default font - Chinese may not display correctly");
