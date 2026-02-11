@@ -37,4 +37,20 @@ void GameCamera::end() {
     EndMode2D();
 }
 
+Rectangle GameCamera::getVisibleBounds() const {
+    Rectangle bounds;
+    bounds.x = camera.target.x - 640.0f;  // SCREEN_WIDTH / 2
+    bounds.y = camera.target.y - 360.0f;  // SCREEN_HEIGHT / 2
+    bounds.width = 1280.0f;               // SCREEN_WIDTH
+    bounds.height = 720.0f;              // SCREEN_HEIGHT
+
+    // Clamp to world bounds
+    if (bounds.x < 0) bounds.x = 0;
+    if (bounds.y < 0) bounds.y = 0;
+    if (bounds.x + bounds.width > 5120.0f) bounds.x = 5120.0f - bounds.width;   // WORLD_WIDTH
+    if (bounds.y + bounds.height > 2880.0f) bounds.y = 2880.0f - bounds.height; // WORLD_HEIGHT
+
+    return bounds;
+}
+
 } // namespace BlockEater

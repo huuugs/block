@@ -9,8 +9,7 @@ ControlSystem::ControlSystem()
     , paused(false)
     , modeButtonPressed(false)
 {
-    // Position joystick in bottom left
-    joystick.origin = {120, SCREEN_HEIGHT - 150};
+    // Joystick origin will be set dynamically on touch
 }
 
 ControlSystem::~ControlSystem() {
@@ -62,16 +61,19 @@ void ControlSystem::togglePause() {
 void ControlSystem::updateJoystick() {
     int touchCount = GetTouchPointCount();
 
-    // Check for new touch
-    for (int i = 0; i < touchCount; i++) {
-        Vector2 touchPos = GetTouchPosition(i);
+    // Check for new touch in left half of screen (dynamic positioning)
+    if (joystick.touchId == -1) {
+        for (int i = 0; i < touchCount; i++) {
+            Vector2 touchPos = GetTouchPosition(i);
 
-        // Check if touch is near joystick
-        float dist = Vector2Length(touchPos - joystick.origin);
-        if (dist < joystick.radius * 2 && joystick.touchId == -1) {
-            joystick.active = true;
-            joystick.touchId = i;
-            joystick.origin = touchPos;
+            // Check if touch is in left half of screen
+            if (touchPos.x < SCREEN_WIDTH / 2) {
+                joystick.active = true;
+                joystick.touchId = i;
+                joystick.origin = touchPos;  // Dynamic origin at touch position
+                joystick.originSet = true;
+                break;  // Only handle one touch for joystick
+            }
         }
     }
 
@@ -87,12 +89,20 @@ void ControlSystem::updateJoystick() {
 
         joystick.input = {delta.x / joystick.radius, delta.y / joystick.radius};
 
-        // Release if finger lifted (simplified check)
-        int currentTouchCount = GetTouchPointCount();
-        if (currentTouchCount == 0 || (joystick.touchId >= 0 && currentTouchCount <= joystick.touchId)) {
+        // Release if finger is lifted
+        bool touchFound = false;
+        for (int i = 0; i < touchCount; i++) {
+            if (i == joystick.touchId) {
+                touchFound = true;
+                break;
+            }
+        }
+
+        if (!touchFound) {
             joystick.active = false;
             joystick.input = {0, 0};
             joystick.touchId = -1;
+            joystick.originSet = false;
         }
     }
 }

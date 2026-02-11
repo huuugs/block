@@ -16,6 +16,7 @@ public:
     void end();    // EndMode2D
 
     Camera2D* getCamera() { return &camera; }
+    Rectangle getVisibleBounds() const;  // Get visible area in world coordinates
 
 private:
     Camera2D camera;
