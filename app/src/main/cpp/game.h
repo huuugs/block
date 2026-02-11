@@ -12,6 +12,10 @@ constexpr int SCREEN_WIDTH = 1280;
 constexpr int SCREEN_HEIGHT = 720;
 constexpr int TARGET_FPS = 60;
 
+// World dimensions (4x screen size for larger map)
+constexpr int WORLD_WIDTH = 5120;
+constexpr int WORLD_HEIGHT = 2880;
+
 // Game states
 enum class GameState {
     MENU,

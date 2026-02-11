@@ -55,9 +55,13 @@ public:
     // Setters
     void setPosition(Vector2 pos) { position = pos; }
 
+    // Facing direction (for skills)
+    Vector2 getFacingDirection() const { return facingDirection; }
+
 private:
     Vector2 position;
     Vector2 velocity;
+    Vector2 facingDirection;  // Last moved direction (for skills)
     int health;
     int level;
     int experience;

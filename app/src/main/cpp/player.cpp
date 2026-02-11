@@ -6,8 +6,9 @@
 namespace BlockEater {
 
 Player::Player()
-    : position{SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f}
+    : position{WORLD_WIDTH / 2.0f, WORLD_HEIGHT / 2.0f}
     , velocity{0, 0}
+    , facingDirection{1, 0}  // Default facing right
     , health(LEVEL_STATS[0].maxHealth)
     , level(1)
     , experience(0)
@@ -107,6 +108,9 @@ void Player::move(Vector2 direction) {
         velocity.x += dir.x * speed * 0.1f;
         velocity.y += dir.y * speed * 0.1f;
 
+        // Update facing direction when moving
+        facingDirection = dir;
+
         // Clamp velocity
         float velLen = Vector2Length(velocity);
         float maxVel = speed;
@@ -168,16 +172,16 @@ void Player::checkBounds() {
         position.x = halfSize;
         velocity.x = 0;
     }
-    if (position.x > SCREEN_WIDTH - halfSize) {
-        position.x = SCREEN_WIDTH - halfSize;
+    if (position.x > WORLD_WIDTH - halfSize) {
+        position.x = WORLD_WIDTH - halfSize;
         velocity.x = 0;
     }
     if (position.y < halfSize) {
         position.y = halfSize;
         velocity.y = 0;
     }
-    if (position.y > SCREEN_HEIGHT - halfSize) {
-        position.y = SCREEN_HEIGHT - halfSize;
+    if (position.y > WORLD_HEIGHT - halfSize) {
+        position.y = WORLD_HEIGHT - halfSize;
         velocity.y = 0;
     }
 }
