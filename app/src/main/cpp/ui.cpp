@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "player.h"
+#include "userManager.h"
 #include <cstdio>
 #include <cmath>
 #include <cstring>
@@ -981,9 +982,6 @@ void UIManager::drawUserMenu(const UserManager* userManager) {
         logError("drawUserMenu: userManager is null");
         return;
     }
-
-    // Include userManager.h for User class definition
-    #include "userManager.h"
 
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
