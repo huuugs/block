@@ -212,15 +212,15 @@ void UIManager::drawMainMenu() {
     float spacing = 10;
 
     // Draw buttons (visual only, click handling in game.cpp)
-    GuiButton((Rectangle){SCREEN_WIDTH/2 - buttonWidth/2, startY, buttonWidth, buttonHeight},
+    GuiButton((Rectangle){(float)(SCREEN_WIDTH/2) - buttonWidth/2, startY, buttonWidth, buttonHeight},
               getText("PLAY ENDLESS", "无尽模式"));
-    GuiButton((Rectangle){SCREEN_WIDTH/2 - buttonWidth/2, startY + (buttonHeight + spacing) * 1, buttonWidth, buttonHeight},
+    GuiButton((Rectangle){(float)(SCREEN_WIDTH/2) - buttonWidth/2, startY + (buttonHeight + spacing) * 1, buttonWidth, buttonHeight},
               getText("LEVEL MODE", "关卡模式"));
-    GuiButton((Rectangle){SCREEN_WIDTH/2 - buttonWidth/2, startY + (buttonHeight + spacing) * 2, buttonWidth, buttonHeight},
+    GuiButton((Rectangle){(float)(SCREEN_WIDTH/2) - buttonWidth/2, startY + (buttonHeight + spacing) * 2, buttonWidth, buttonHeight},
               getText("TIME CHALLENGE", "时间挑战"));
-    GuiButton((Rectangle){SCREEN_WIDTH/2 - buttonWidth/2, startY + (buttonHeight + spacing) * 3, buttonWidth, buttonHeight},
+    GuiButton((Rectangle){(float)(SCREEN_WIDTH/2) - buttonWidth/2, startY + (buttonHeight + spacing) * 3, buttonWidth, buttonHeight},
               getText("SETTINGS", "设置"));
-    GuiButton((Rectangle){SCREEN_WIDTH/2 - buttonWidth/2, startY + (buttonHeight + spacing) * 4, buttonWidth, buttonHeight},
+    GuiButton((Rectangle){(float)(SCREEN_WIDTH/2) - buttonWidth/2, startY + (buttonHeight + spacing) * 4, buttonWidth, buttonHeight},
               getText("QUIT", "退出"));
 
     // Instructions
@@ -243,9 +243,9 @@ void UIManager::drawPauseMenu() {
     int buttonWidth = 250;
     int buttonHeight = 50;
 
-    GuiButton((Rectangle){SCREEN_WIDTH / 2 - buttonWidth / 2, 250, (float)buttonWidth, (float)buttonHeight},
+    GuiButton((Rectangle){(float)(SCREEN_WIDTH / 2 - buttonWidth / 2), 250.0f, (float)buttonWidth, (float)buttonHeight},
               getText("RESUME", "继续"));
-    GuiButton((Rectangle){SCREEN_WIDTH / 2 - buttonWidth / 2, 320, (float)buttonWidth, (float)buttonHeight},
+    GuiButton((Rectangle){(float)(SCREEN_WIDTH / 2 - buttonWidth / 2), 320.0f, (float)buttonWidth, (float)buttonHeight},
               getText("QUIT TO MENU", "退出到菜单"));
 }
 
@@ -284,9 +284,9 @@ void UIManager::drawGameOverMenu(int score, int level) {
     int buttonWidth = 250;
     int buttonHeight = 50;
 
-    GuiButton((Rectangle){SCREEN_WIDTH / 2 - buttonWidth / 2, 350, (float)buttonWidth, (float)buttonHeight},
+    GuiButton((Rectangle){(float)(SCREEN_WIDTH / 2 - buttonWidth / 2), 350.0f, (float)buttonWidth, (float)buttonHeight},
               getText("TRY AGAIN", "再试一次"));
-    GuiButton((Rectangle){SCREEN_WIDTH / 2 - buttonWidth / 2, 420, (float)buttonWidth, (float)buttonHeight},
+    GuiButton((Rectangle){(float)(SCREEN_WIDTH / 2 - buttonWidth / 2), 420.0f, (float)buttonWidth, (float)buttonHeight},
               getText("MAIN MENU", "主菜单"));
 }
 
@@ -314,7 +314,7 @@ void UIManager::drawLevelSelect() {
     }
 
     // Back button
-    GuiButton((Rectangle){SCREEN_WIDTH / 2 - 100, 500, 200, 50}, getText("BACK", "返回"));
+    GuiButton((Rectangle){(float)(SCREEN_WIDTH / 2 - 100), 500.0f, 200.0f, 50.0f}, getText("BACK", "返回"));
 }
 
 void UIManager::drawSettings() {
@@ -326,17 +326,17 @@ void UIManager::drawSettings() {
     // Language setting
     DrawText(getText("Language:", "语言:"), 200, 135, 20, currentTheme->text);
     const char* langText = (language == Language::ENGLISH) ? "English" : "中文";
-    GuiButton((Rectangle){500, 120, 200, 40}, langText);
+    GuiButton((Rectangle){500.0f, 120.0f, 200.0f, 40.0f}, langText);
 
     // Theme setting
     DrawText(getText("Theme:", "主题:"), 200, 205, 20, currentTheme->text);
-    GuiButton((Rectangle){500, 190, 200, 40}, currentTheme->name);
-    GuiButton((Rectangle){720, 190, 80, 40}, getText(">", ">"));
+    GuiButton((Rectangle){500.0f, 190.0f, 200.0f, 40.0f}, currentTheme->name);
+    GuiButton((Rectangle){720.0f, 190.0f, 80.0f, 40.0f}, getText(">", ">"));
 
     // Control mode setting
     DrawText(getText("Control Mode:", "控制模式:"), 200, 275, 20, currentTheme->text);
-    GuiButton((Rectangle){500, 260, 200, 40}, getText("Virtual Joystick", "虚拟摇杆"));
-    GuiButton((Rectangle){720, 260, 200, 40}, getText("Touch Follow", "触摸跟随"));
+    GuiButton((Rectangle){500.0f, 260.0f, 200.0f, 40.0f}, getText("Virtual Joystick", "虚拟摇杆"));
+    GuiButton((Rectangle){720.0f, 260.0f, 200.0f, 40.0f}, getText("Touch Follow", "触摸跟随"));
 
     // Volume settings (visual only, using DrawRectangle)
     DrawText(getText("Master Volume:", "主音量:"), 200, 355, 20, currentTheme->text);
@@ -352,7 +352,7 @@ void UIManager::drawSettings() {
     DrawRectangle(500, 450, 150, 20, {255, 150, 50, 255});
 
     // Back button
-    GuiButton((Rectangle){SCREEN_WIDTH / 2 - 100, 530, 200, 50}, getText("BACK", "返回"));
+    GuiButton((Rectangle){(float)(SCREEN_WIDTH / 2 - 100), 530.0f, 200.0f, 50.0f}, getText("BACK", "返回"));
 }
 
 bool UIManager::isButtonClicked(int x, int y, int width, int height) {
