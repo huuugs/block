@@ -96,9 +96,10 @@ UnloadFileData(fileData);
 ```
 
 ### Font Files (in `app/src/main/cpp/fonts/`)
-- `zpix.ttf` - Primary Chinese pixel font (smaller file)
-- `SourceHanSansCN-Regular.otf` - Full CJK support (larger file, ~7MB)
-- `vonwaon_pixel_12px.ttf` - Alternative pixel font
+- `zpix.ttf` - Primary Chinese pixel font (~7MB, ~3500 characters)
+- `vonwaon_pixel_12px.ttf` - Alternative pixel font (fallback)
+
+**Note**: Source Han Sans was removed to reduce APK size from ~30MB to ~7MB.
 
 ### Font Loading Process
 1. `LoadCodepoints(allText, &codepointCount)` extracts unique characters from text
@@ -106,8 +107,17 @@ UnloadFileData(fileData);
 3. `LoadFontFromMemory()` creates font from memory
 4. `SetTextureFilter()` and `GenTextureMipmaps()` optimize rendering
 
+### Chinese Character Set
+The `allChineseText` string in `assets.cpp:241-405` contains ~3500 common Chinese characters organized by category:
+- Game UI text, user system text
+- Top 100 most common characters
+- Common surnames and given names
+- Verbs, adjectives, measure words
+- Time expressions, directions, emotions
+- Daily items and common phrases
+
 ### Key Code Locations
-- `assets.cpp:234-401` - `LoadExternalFont()` using LoadFileData + LoadFontFromMemory
+- `assets.cpp:234-500` - `LoadExternalFont()` with LoadFileData + LoadFontFromMemory
 - `ui.cpp:70-158` - `init()` with SetTraceLogCallback for log synchronization
 - `ui.cpp:814-834` - `drawTextWithFont()` and `measureTextWithFont()` helpers
 
@@ -164,7 +174,29 @@ These must all match or the app will crash on startup with "Unable to find nativ
 
 ## Touch Input Handling
 
-Touch input is handled in each state's update function:
+### Multitouch Best Practices
+**CRITICAL**: Always iterate through ALL touch points when detecting UI interactions that need to work simultaneously with controls.
+
+```cpp
+// WRONG - Only checks first touch point
+Vector2 pos = GetTouchPosition(0);
+if (CheckCollisionPointRec(pos, buttonRect)) { ... }
+
+// CORRECT - Checks all touch points
+int touchCount = GetTouchPointCount();
+for (int t = 0; t < touchCount; t++) {
+    Vector2 pos = GetTouchPosition(t);
+    if (CheckCollisionPointRec(pos, buttonRect)) { ... }
+}
+```
+
+This is essential for:
+- Skill buttons while using joystick (touch 0: joystick, touch 1: skills)
+- Multiple simultaneous UI interactions
+- Better mobile gameplay experience
+
+### Single Touch Pattern
+For menu interactions where only one touch is needed:
 ```cpp
 if (GetTouchPointCount() > 0 || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
     Vector2 pos = GetTouchPointCount() > 0 ? GetTouchPosition(0) : GetMousePosition();
@@ -172,7 +204,7 @@ if (GetTouchPointCount() > 0 || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
 }
 ```
 
-The game also has an in-game menu button (top-right corner, 70x35px) that pauses gameplay.
+The game has an in-game menu button (top-right corner, 70x35px) that pauses gameplay.
 
 ## UI Button System
 
@@ -262,17 +294,37 @@ SetTraceLogCallback([](int logLevel, const char* text, va_list args) -> void {
 
 ## Skill System
 
-The player has 4 active skills with cooldowns:
-1. **Speed Boost** - Temporary movement speed increase
-2. **Shield** - Arc-shaped shield that blocks enemies
-3. **Dash** - Quick burst movement in facing direction
-4. **Magnet** - Attract nearby food blocks
+The player has 4 active skills with cooldowns (displayed in bottom-right corner):
+1. **Rotate** (旋转) - 5s cooldown - Damage reduction and reflection
+2. **Blink** (闪现) - 8s cooldown - Teleport 5x player size in facing direction
+3. **Shoot** (射击) - 3s cooldown - Fire bullet costing 20 HP, deals 3x damage
+4. **Shield** (护盾) - 15s cooldown - Arc-shaped shield that blocks enemies
 
-### Important Notes
+### Important Implementation Notes
 - Skills use energy from player's energy bar
 - Each skill has independent cooldown
-- Shield requires `shieldTimeLeft = shieldDuration` initialization (bug fix applied)
-- See `skills.cpp:60-95` for skill activation logic
+- Shield requires `shieldTimeLeft = shieldDuration` initialization (fixed in skills.cpp:161)
+- Shield duration increases with player level (1-15 seconds based on level)
+- See `skills.cpp:106-168` for skill activation logic
+
+### CRITICAL: Multitouch Support for Skills
+**FIXED**: Skills and direction can now be used simultaneously (commit 7373d38).
+
+**The Problem**: Original code only checked `GetTouchPosition(0)`, which conflicted with joystick input.
+
+**The Solution** - Iterate through ALL touch points (`game.cpp:290-347`):
+```cpp
+// Check each touch point for skill button clicks
+for (int t = 0; t < touchCount; t++) {
+    Vector2 pos = GetTouchPosition(t);
+    // Check if this touch is on a skill button...
+}
+```
+
+This allows:
+- Touch point 0: Joystick control (left half of screen)
+- Touch point 1+: Skill buttons (bottom-right corner)
+- Simultaneous movement and skill activation
 
 ## Background and Assets
 
@@ -287,22 +339,27 @@ Background texture is loaded in `game.cpp:51` and drawn with `drawBackground()`.
 
 ### Fixed: Shield Not Displaying
 **Problem**: Skill 4 (shield) didn't appear when used
-**Solution**: Added `shieldTimeLeft = shieldDuration;` in `skills.cpp:86`
+**Solution**: Added `shieldTimeLeft = shieldDuration;` in `skills.cpp:161`
 
 ### Fixed: Level Mode Instant Death
 **Problem**: Entering level mode caused immediate game over
-**Solution**: Fixed time limit loading - levels with `timeLimit = 0` have no time limit
+**Solution**: Fixed time limit loading - levels with `timeLimit = 0` have no time limit (game.cpp:679-694)
 
 ### Fixed: Chinese Font Not Loading
 **Problem**: `LoadFontEx()` couldn't access Android assets
 **Solution**: Use `LoadFileData()` + `LoadFontFromMemory()` pattern (see Font Support section)
 
+### Fixed: Skills and Direction Cannot Respond Simultaneously
+**Problem**: Using joystick prevented skill activation
+**Solution**: Changed from checking `GetTouchPosition(0)` to iterating all touch points (game.cpp:291-347)
+
 ## Adding New Content
 
 ### Adding New Chinese Text
-1. Add Chinese characters to `allChineseText` in `assets.cpp:241-316`
-2. Use `getText("English", "中文")` in UI code
-3. Rebuild APK to test
+1. Add Chinese characters to `allChineseText` in `assets.cpp:241-405`
+2. Characters are automatically extracted by `LoadCodepoints()` - no need to manually manage codepoints
+3. Use `getText("English", "中文")` in UI code
+4. Rebuild APK to test
 
 ### Adding New Game State
 1. Add enum value to `GameState` in `game.h`
