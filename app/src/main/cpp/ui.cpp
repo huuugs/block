@@ -173,18 +173,24 @@ void UIManager::draw(GameState state, GameMode mode) {
 }
 
 bool UIManager::drawButton(float x, float y, float width, float height, const char* text, bool enabled) {
+    // Ensure raygui uses custom font before drawing button
+    if (useCustomFont && mainFont != nullptr) {
+        GuiSetFont(*mainFont);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
+    }
+
     Rectangle bounds = {x, y, width, height};
-    
+
     if (!enabled) {
         GuiSetState(STATE_DISABLED);
     }
-    
+
     int result = GuiButton(bounds, text);
-    
+
     if (!enabled) {
         GuiSetState(STATE_NORMAL);
     }
-    
+
     return result;
 }
 

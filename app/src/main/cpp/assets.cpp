@@ -202,20 +202,29 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
 
     // Try loading from the given path first
     if (FileExists(fontPath)) {
+        TraceLog(LOG_INFO, TextFormat("Attempting to load font from: %s", fontPath));
+
         // Load font with Chinese character support
         pixelFont = LoadFontEx(fontPath, fontSize, chineseCodepoints, codepointCount);
+
         if (pixelFont.texture.id != 0) {
             GenTextureMipmaps(&pixelFont.texture);
+            TraceLog(LOG_INFO, TextFormat("Font texture loaded successfully, ID: %u, size: %dx%d",
+                pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height));
 
             smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
             if (smallFont.texture.id != 0) {
                 GenTextureMipmaps(&smallFont.texture);
+                TraceLog(LOG_INFO, "Small font loaded successfully");
             } else {
                 smallFont = pixelFont;
+                TraceLog(LOG_WARNING, "Small font load failed, using main font");
             }
 
             TraceLog(LOG_INFO, TextFormat("Font loaded from %s with %d codepoints (including Chinese)", fontPath, codepointCount));
             return true;
+        } else {
+            TraceLog(LOG_ERROR, TextFormat("Failed to load font from: %s", fontPath));
         }
     }
 
@@ -232,10 +241,13 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
 
     for (const char* path : androidPaths) {
         if (FileExists(path)) {
+            TraceLog(LOG_INFO, TextFormat("Attempting Android font: %s", path));
+
             // Load font with Chinese character support
             pixelFont = LoadFontEx(path, fontSize, chineseCodepoints, codepointCount);
             if (pixelFont.texture.id != 0) {
                 GenTextureMipmaps(&pixelFont.texture);
+                TraceLog(LOG_INFO, TextFormat("Font texture loaded, ID: %u", pixelFont.texture.id));
 
                 smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
                 if (smallFont.texture.id != 0) {
@@ -251,6 +263,7 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
     }
     #endif
 
+    TraceLog(LOG_WARNING, "Failed to load any external font, using default");
     return false;
 }
 
