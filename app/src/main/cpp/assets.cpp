@@ -140,7 +140,88 @@ Texture2D AssetManager::GeneratePixelGrid() {
 }
 
 Texture2D AssetManager::GeneratePixelBackground() {
-    return GeneratePixelGrid();
+    // Generate space-themed background with stars instead of dizzying grid
+    int width = SCREEN_WIDTH;
+    int height = SCREEN_HEIGHT;
+
+    Image img = {
+        .data = malloc(width * height * 4),
+        .width = width,
+        .height = height,
+        .mipmaps = 1,
+        .format = PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
+    };
+
+    // Create space background with stars
+    // Deep space gradient (dark blue to black)
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            int index = (y * width + x) * 4;
+
+            // Create subtle gradient from top to bottom
+            float t = (float)y / (float)height;
+            unsigned char r = (unsigned char)(10 * (1.0f - t * 0.5f));
+            unsigned char g = (unsigned char)(10 * (1.0f - t * 0.3f));
+            unsigned char b = (unsigned char)(25 * (1.0f - t * 0.2f));
+
+            ((unsigned char*)img.data)[index] = r;
+            ((unsigned char*)img.data)[index + 1] = g;
+            ((unsigned char*)img.data)[index + 2] = b;
+            ((unsigned char*)img.data)[index + 3] = 255;
+        }
+    }
+
+    // Add random stars with varying brightness
+    const int numStars = 200;
+    for (int i = 0; i < numStars; i++) {
+        int x = rand() % width;
+        int y = rand() % height;
+        int starSize = 1 + (rand() % 2);  // 1-2 pixels
+        int brightness = 150 + (rand() % 106);  // 150-255
+
+        for (int dy = 0; dy < starSize && y + dy < height; dy++) {
+            for (int dx = 0; dx < starSize && x + dx < width; dx++) {
+                int index = ((y + dy) * width + (x + dx)) * 4;
+                ((unsigned char*)img.data)[index] = (unsigned char)brightness;
+                ((unsigned char*)img.data)[index + 1] = (unsigned char)brightness;
+                ((unsigned char*)img.data)[index + 2] = (unsigned char)brightness;
+                ((unsigned char*)img.data)[index + 3] = 255;
+            }
+        }
+    }
+
+    // Add a few brighter "stars" with slight blue tint
+    const int numBrightStars = 20;
+    for (int i = 0; i < numBrightStars; i++) {
+        int x = rand() % width;
+        int y = rand() % height;
+
+        int index = (y * width + x) * 4;
+        ((unsigned char*)img.data)[index] = 200;      // R
+        ((unsigned char*)img.data)[index + 1] = 220;  // G
+        ((unsigned char*)img.data)[index + 2] = 255;  // B
+        ((unsigned char*)img.data)[index + 3] = 255;
+
+        // Add glow around bright stars
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dy == 0) continue;
+                int nx = x + dx;
+                int ny = y + dy;
+                if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                    int nIndex = (ny * width + nx) * 4;
+                    ((unsigned char*)img.data)[nIndex] = 150;
+                    ((unsigned char*)img.data)[nIndex + 1] = 170;
+                    ((unsigned char*)img.data)[nIndex + 2] = 200;
+                    ((unsigned char*)img.data)[nIndex + 3] = 180;
+                }
+            }
+        }
+    }
+
+    Texture2D tex = LoadTextureFromImage(img);
+    UnloadImage(img);
+    return tex;
 }
 
 bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {

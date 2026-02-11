@@ -106,6 +106,7 @@ void Game::update() {
 
     ui->update(deltaTime);
     particles->update(deltaTime);
+    audio->updateMusic();  // Update music streaming
 }
 
 void Game::draw() {
@@ -281,6 +282,7 @@ void Game::updatePlaying() {
                         if (newPos.y > WORLD_HEIGHT - player->getSize()) newPos.y = WORLD_HEIGHT - player->getSize();
                         player->setPosition(newPos);
                         skillManager->useSkill(skillType, newPos, facingDir, player->getSize(), playerHP);
+                        audio->playBlinkSound();
                     } else if (skillType == SkillType::SHOOT) {
                         // Handle shoot - create bullet and consume HP
                         int hpCost = 20;
@@ -291,6 +293,7 @@ void Game::updatePlaying() {
                             Bullet* bullet = new Bullet(player->getPosition(), facingDir, damage, 0);
                             bullets.push_back(bullet);
                             skillManager->useSkill(skillType, player->getPosition(), facingDir, player->getSize(), currentHP);
+                            audio->playShootSound();
                         }
                     } else if (skillType == SkillType::SHIELD) {
                         // Handle shield - set shield duration based on player level
@@ -299,8 +302,10 @@ void Game::updatePlaying() {
                         if (shieldDuration > 15.0f) shieldDuration = 15.0f;
                         skillManager->setShieldDuration(shieldDuration);
                         skillManager->useSkill(skillType, player->getPosition(), facingDir, player->getSize(), playerHP);
+                        audio->playShieldSound();
                     } else {
                         skillManager->useSkill(skillType, player->getPosition(), facingDir, player->getSize(), playerHP);
+                        audio->playRotateSound();
                     }
                 }
                 break;  // Only handle one button click at a time
@@ -458,6 +463,26 @@ void Game::drawMenu() {
 void Game::drawPlaying() {
     // Apply camera for world rendering
     camera->apply();
+
+    // Draw world map border (visible boundary around the play area)
+    float borderWidth = 10.0f;
+    Color borderColor = {255, 100, 100, 200};  // Red border
+    Color borderOutlineColor = {255, 150, 150, 255};  // Lighter outline
+
+    // Draw main border rectangle
+    DrawRectangleLinesEx((Rectangle){0, 0, WORLD_WIDTH, WORLD_HEIGHT}, borderWidth, borderColor);
+    DrawRectangleLinesEx((Rectangle){0, 0, WORLD_WIDTH, WORLD_HEIGHT}, borderWidth / 2, borderOutlineColor);
+
+    // Draw corner markers for additional visibility
+    float cornerSize = 100.0f;
+    DrawRectangle(0, 0, cornerSize, borderWidth, borderOutlineColor);  // Top-left
+    DrawRectangle(0, 0, borderWidth, cornerSize, borderOutlineColor);
+    DrawRectangle(WORLD_WIDTH - cornerSize, 0, cornerSize, borderWidth, borderOutlineColor);  // Top-right
+    DrawRectangle(WORLD_WIDTH - borderWidth, 0, borderWidth, cornerSize, borderOutlineColor);
+    DrawRectangle(0, WORLD_HEIGHT - borderWidth, cornerSize, borderWidth, borderOutlineColor);  // Bottom-left
+    DrawRectangle(0, WORLD_HEIGHT - cornerSize, borderWidth, cornerSize, borderOutlineColor);
+    DrawRectangle(WORLD_WIDTH - cornerSize, WORLD_HEIGHT - borderWidth, cornerSize, borderWidth, borderOutlineColor);  // Bottom-right
+    DrawRectangle(WORLD_WIDTH - borderWidth, WORLD_HEIGHT - cornerSize, borderWidth, cornerSize, borderOutlineColor);
 
     // Draw blink effect (flash trail)
     if (skillManager->getBlinkTimer() > 0) {

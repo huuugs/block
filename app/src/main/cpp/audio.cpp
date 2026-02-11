@@ -2,6 +2,10 @@
 #include <cstring>
 #include <cmath>
 
+#ifndef PI
+#define PI 3.14159265358979323846f
+#endif
+
 namespace BlockEater {
 
 // Audio Generator Implementation
@@ -186,10 +190,167 @@ Sound AudioGenerator::GenerateButtonClickSound() {
 }
 
 Music AudioGenerator::GenerateBackgroundMusic() {
-    // For simplicity, return empty music
-    // In a full implementation, you would generate a chiptune loop
-    Music music = {0};
+    // Generate a simple chiptune loop
+    int sampleRate = 44100;
+    float duration = 16.0f;  // 16 seconds loop
+    int samples = (int)(sampleRate * duration);
+    short* buffer = new short[samples];
+
+    // Simple bassline melody
+    int bassline[] = {65, 65, 82, 73, 65, 73, 82, 98};  // C2, C2, D#2, D2, C2, D2, D#2, G2
+    float noteDuration = duration / 16.0f;  // 16 notes
+
+    for (int i = 0; i < samples; i++) {
+        float t = (float)i / sampleRate;
+        int note = (int)(t / noteDuration) % 16;
+
+        int freq = bassline[note % 8];
+
+        // Mix bass (sawtooth) and harmony (sine)
+        float bass = 2.0f * (t * freq / 2 - floorf(0.5f + t * freq / 2));
+        float harmony = sinf(2.0f * PI * freq * 2 * t) * 0.3f;
+
+        float sample = (bass * 0.4f + harmony) * 0.15f;
+
+        // Add subtle beat every quarter note
+        int beatNote = (note / 4) % 4;
+        float beat = (note % 4 == 0) ? 0.1f : 0.0f;
+        sample += beat * sinf(2.0f * PI * 50 * t);
+
+        buffer[i] = (short)(sample * 32767.0f);
+    }
+
+    Wave wave = {
+        .frameCount = static_cast<unsigned int>(samples),
+        .sampleRate = static_cast<unsigned int>(sampleRate),
+        .sampleSize = 16,
+        .channels = 1,
+        .data = buffer
+    };
+
+    Music music = LoadMusicStreamFromWave(wave);
+    UnloadWave(wave);
     return music;
+}
+
+// Shoot sound - high pitch laser
+Sound AudioGenerator::GenerateShootSound() {
+    int sampleRate = 44100;
+    float duration = 0.15f;
+    int samples = (int)(sampleRate * duration);
+    short* buffer = new short[samples];
+
+    for (int i = 0; i < samples; i++) {
+        float t = (float)i / sampleRate;
+        // Descending laser pitch
+        int freq = 800 - (int)(t * 1200);
+        if (freq < 100) freq = 100;
+
+        float sample = sinf(2.0f * PI * freq * t) * 0.3f;
+        buffer[i] = (short)(sample * 32767.0f);
+    }
+
+    ApplyEnvelope(buffer, samples, 0.01f, 0.05f, 0.0f, 0.05f);
+
+    Wave wave = {
+        .frameCount = static_cast<unsigned int>(samples),
+        .sampleRate = static_cast<unsigned int>(sampleRate),
+        .sampleSize = 16,
+        .channels = 1,
+        .data = buffer
+    };
+
+    return LoadSoundFromWave(wave);
+}
+
+// Blink sound - teleport whoosh
+Sound AudioGenerator::GenerateBlinkSound() {
+    int sampleRate = 44100;
+    float duration = 0.2f;
+    int samples = (int)(sampleRate * duration);
+    short* buffer = new short[samples];
+
+    for (int i = 0; i < samples; i++) {
+        float t = (float)i / sampleRate;
+        // Rising then falling pitch
+        float phase = (t < duration / 2) ? (t / (duration / 2)) : (1.0f - (t - duration / 2) / (duration / 2));
+        int freq = 200 + (int)(phase * 600);
+
+        float sample = (sinf(2.0f * PI * freq * t) > 0 ? 1.0f : -1.0f) * 0.3f;
+        buffer[i] = (short)(sample * 32767.0f);
+    }
+
+    ApplyEnvelope(buffer, samples, 0.02f, 0.08f, 0.0f, 0.08f);
+
+    Wave wave = {
+        .frameCount = static_cast<unsigned int>(samples),
+        .sampleRate = static_cast<unsigned int>(sampleRate),
+        .sampleSize = 16,
+        .channels = 1,
+        .data = buffer
+    };
+
+    return LoadSoundFromWave(wave);
+}
+
+// Shield sound - power up hum
+Sound AudioGenerator::GenerateShieldSound() {
+    int sampleRate = 44100;
+    float duration = 0.3f;
+    int samples = (int)(sampleRate * duration);
+    short* buffer = new short[samples];
+
+    for (int i = 0; i < samples; i++) {
+        float t = (float)i / sampleRate;
+        // Rising pitch with harmonics
+        int freq = 150 + (int)(t * 400);
+
+        float sample = sinf(2.0f * PI * freq * t) * 0.25f +
+                      sinf(2.0f * PI * freq * 2 * t) * 0.15f;
+        buffer[i] = (short)(sample * 32767.0f);
+    }
+
+    ApplyEnvelope(buffer, samples, 0.05f, 0.15f, 0.0f, 0.15f);
+
+    Wave wave = {
+        .frameCount = static_cast<unsigned int>(samples),
+        .sampleRate = static_cast<unsigned int>(sampleRate),
+        .sampleSize = 16,
+        .channels = 1,
+        .data = buffer
+    };
+
+    return LoadSoundFromWave(wave);
+}
+
+// Rotate sound - spinning effect
+Sound AudioGenerator::GenerateRotateSound() {
+    int sampleRate = 44100;
+    float duration = 0.25f;
+    int samples = (int)(sampleRate * duration);
+    short* buffer = new short[samples];
+
+    for (int i = 0; i < samples; i++) {
+        float t = (float)i / sampleRate;
+        // Oscillating frequency for spinning effect
+        float wobble = sinf(t * 20.0f);
+        int freq = 300 + (int)(wobble * 100);
+
+        float sample = (sinf(2.0f * PI * freq * t) > 0 ? 1.0f : -1.0f) * 0.35f;
+        buffer[i] = (short)(sample * 32767.0f);
+    }
+
+    ApplyEnvelope(buffer, samples, 0.02f, 0.1f, 0.0f, 0.1f);
+
+    Wave wave = {
+        .frameCount = static_cast<unsigned int>(samples),
+        .sampleRate = static_cast<unsigned int>(sampleRate),
+        .sampleSize = 16,
+        .channels = 1,
+        .data = buffer
+    };
+
+    return LoadSoundFromWave(wave);
 }
 
 // Audio Manager Implementation
@@ -198,6 +359,9 @@ AudioManager::AudioManager()
     , sfxVolume(0.8f)
     , musicVolume(0.6f)
     , musicPlaying(false)
+    , musicLoaded(false)
+    , musicTime(0.0f)
+    , musicDuration(16.0f)
 {
 }
 
@@ -214,6 +378,16 @@ void AudioManager::init() {
     levelUpSound = AudioGenerator::GenerateLevelUpSound();
     deathSound = AudioGenerator::GenerateDeathSound();
     buttonClickSound = AudioGenerator::GenerateButtonClickSound();
+    shootSound = AudioGenerator::GenerateShootSound();
+    blinkSound = AudioGenerator::GenerateBlinkSound();
+    shieldSound = AudioGenerator::GenerateShieldSound();
+    rotateSound = AudioGenerator::GenerateRotateSound();
+
+    // Generate and load background music
+    bgMusic = AudioGenerator::GenerateBackgroundMusic();
+    if (bgMusic.stream.sampleCount > 0) {
+        musicLoaded = true;
+    }
 }
 
 void AudioManager::shutdown() {
@@ -224,6 +398,15 @@ void AudioManager::shutdown() {
     UnloadSound(levelUpSound);
     UnloadSound(deathSound);
     UnloadSound(buttonClickSound);
+    UnloadSound(shootSound);
+    UnloadSound(blinkSound);
+    UnloadSound(shieldSound);
+    UnloadSound(rotateSound);
+
+    if (musicLoaded) {
+        UnloadMusicStream(bgMusic);
+        musicLoaded = false;
+    }
 }
 
 void AudioManager::playEatSound(int level) {
@@ -247,8 +430,38 @@ void AudioManager::playButtonClickSound() {
     PlaySound(buttonClickSound);
 }
 
+void AudioManager::playShootSound() {
+    PlaySound(shootSound);
+}
+
+void AudioManager::playBlinkSound() {
+    PlaySound(blinkSound);
+}
+
+void AudioManager::playShieldSound() {
+    PlaySound(shieldSound);
+}
+
+void AudioManager::playRotateSound() {
+    PlaySound(rotateSound);
+}
+
 void AudioManager::playBackgroundMusic(bool play) {
-    musicPlaying = play;
+    if (!musicLoaded) return;
+
+    if (play && !musicPlaying) {
+        PlayMusicStream(bgMusic);
+        musicPlaying = true;
+    } else if (!play && musicPlaying) {
+        PauseMusicStream(bgMusic);
+        musicPlaying = false;
+    }
+}
+
+void AudioManager::updateMusic() {
+    if (musicLoaded && musicPlaying) {
+        UpdateMusicStream(bgMusic);
+    }
 }
 
 void AudioManager::setMasterVolume(float volume) {

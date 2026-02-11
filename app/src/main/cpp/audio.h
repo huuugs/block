@@ -23,6 +23,10 @@ public:
     static Sound GenerateLevelUpSound();
     static Sound GenerateDeathSound();
     static Sound GenerateButtonClickSound();
+    static Sound GenerateShootSound();
+    static Sound GenerateBlinkSound();
+    static Sound GenerateShieldSound();
+    static Sound GenerateRotateSound();
     static Music GenerateBackgroundMusic();
 
 private:
@@ -44,7 +48,12 @@ public:
     void playLevelUpSound();
     void playDeathSound();
     void playButtonClickSound();
+    void playShootSound();
+    void playBlinkSound();
+    void playShieldSound();
+    void playRotateSound();
     void playBackgroundMusic(bool play = true);
+    void updateMusic();
 
     void setMasterVolume(float volume);
     void setSfxVolume(float volume);
@@ -66,13 +75,20 @@ private:
     Sound levelUpSound;
     Sound deathSound;
     Sound buttonClickSound;
+    Sound shootSound;
+    Sound blinkSound;
+    Sound shieldSound;
+    Sound rotateSound;
     Music bgMusic;
+    bool musicLoaded;
 
     float masterVolume;
     float sfxVolume;
     float musicVolume;
     bool musicPlaying;
     bool m_isMuted = false;
+    float musicTime;
+    float musicDuration;
 
     // Helper to update actual volume based on mute state
     void updateVolume() {

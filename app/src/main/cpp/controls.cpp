@@ -31,7 +31,6 @@ void ControlSystem::draw() {
         drawJoystick();
     }
 
-    drawModeButton();
     drawPauseButton();
 }
 
