@@ -41,6 +41,9 @@ set(GAME_SOURCES
     camera.cpp
 )
 
+# Include raygui (header-only library)
+include_directories(${CMAKE_SOURCE_DIR}/raygui/src)
+
 # Create shared library
 add_library(main SHARED ${GAME_SOURCES})
 

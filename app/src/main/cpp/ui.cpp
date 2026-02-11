@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "player.h"
+#include "raygui.h"
 #include <cstdio>
 #include <cmath>
 
