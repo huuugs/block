@@ -1,4 +1,5 @@
 #include "camera.h"
+#include "game.h"
 
 namespace BlockEater {
 
