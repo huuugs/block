@@ -22,27 +22,29 @@ void AssetManager::shutdown() {
 void AssetManager::LoadFonts() {
     // First try to load external font with Chinese support
     bool loaded = false;
-    
-    // Try to load zpix pixel font (Chinese support) - preferred
+
+    // IMPORTANT: Try Source Han Sans FIRST for full Chinese character support
+    // zpix.ttf is a pixel font with limited Chinese character support
+    // Source Han Sans has comprehensive CJK character coverage
+    if (!loaded) {
+        loaded = LoadExternalFont("fonts/SourceHanSansCN-Regular.otf", 18);
+    }
+
+    // Fallback: zpix pixel font (limited Chinese support)
     if (!loaded) {
         loaded = LoadExternalFont("fonts/zpix.ttf", 16);
     }
-    
-    // Fallback: Vonwaon pixel font
+
+    // Fallback: Vonwaon pixel font (likely no Chinese)
     if (!loaded) {
         loaded = LoadExternalFont("fonts/vonwaon_pixel_12px.ttf", 12);
     }
-    
-    // Fallback: Source Han Sans
-    if (!loaded) {
-        loaded = LoadExternalFont("fonts/SourceHanSansCN-Regular.otf", 16);
-    }
-    
+
     // Fallback: use default raylib font if external fonts not available
     if (!loaded) {
         pixelFont = GetFontDefault();
         smallFont = GetFontDefault();
-        TraceLog(LOG_INFO, "Using default font (no Chinese support)");
+        TraceLog(LOG_WARNING, "Using default font (no Chinese support)");
     } else {
         TraceLog(LOG_INFO, "External font loaded successfully");
     }
@@ -309,10 +311,10 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         pixelFont = LoadFontEx(fontPath, fontSize, chineseCodepoints, codepointCount);
 
         if (pixelFont.texture.id != 0) {
-            TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded! ID=%u, size=%dx%d, chars=%d",
+            TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded from %s", fontPath));
+            TraceLog(LOG_INFO, TextFormat("Font: ID=%u, size=%dx%d, codepoints=%d",
                 pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height, codepointCount));
-            TraceLog(LOG_INFO, TextFormat("Font baseSize: %d, glyph count: %d",
-                pixelFont.baseSize, 95));  // raylib stores first 95 glyphs
+            TraceLog(LOG_INFO, TextFormat("Font baseSize: %d", pixelFont.baseSize));
 
             SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
             GenTextureMipmaps(&pixelFont.texture);
@@ -331,15 +333,15 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         }
     }
 
-    // On Android, try assets path
+    // On Android, try assets path - Source Han Sans FIRST for Chinese support
     #if defined(PLATFORM_ANDROID)
     const char* androidPaths[] = {
-        "fonts/zpix.ttf",
+        "fonts/SourceHanSansCN-Regular.otf",  // Try Source Han Sans first - full CJK support
+        "SourceHanSansCN-Regular.otf",
+        "fonts/zpix.ttf",                      // Pixel font - limited Chinese
         "zpix.ttf",
-        "fonts/vonwaon_pixel_12px.ttf",
-        "fonts/SourceHanSansCN-Regular.otf",
-        "vonwaon_pixel_12px.ttf",
-        "SourceHanSansCN-Regular.otf"
+        "fonts/vonwaon_pixel_12px.ttf",        // Pixel font - likely no Chinese
+        "vonwaon_pixel_12px.ttf"
     };
 
     for (const char* path : androidPaths) {
@@ -348,10 +350,9 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
 
             pixelFont = LoadFontEx(path, fontSize, chineseCodepoints, codepointCount);
             if (pixelFont.texture.id != 0) {
-                TraceLog(LOG_INFO, TextFormat("SUCCESS: Android font loaded! ID=%u, path=%s",
-                    pixelFont.texture.id, path));
-                TraceLog(LOG_INFO, TextFormat("Font size: %dx%d, chars: %d",
-                    pixelFont.texture.width, pixelFont.texture.height, codepointCount));
+                TraceLog(LOG_INFO, TextFormat("SUCCESS: Android font loaded from %s", path));
+                TraceLog(LOG_INFO, TextFormat("Font: ID=%u, size=%dx%d, codepoints=%d",
+                    pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height, codepointCount));
 
                 SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
                 GenTextureMipmaps(&pixelFont.texture);
