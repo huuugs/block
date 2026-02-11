@@ -121,6 +121,7 @@ private:
     float timeRemaining;
     float deltaTime;
     float gameTime;
+    Texture2D backgroundTexture;  // Space background texture
 
     void updateMenu();
     void updatePlaying();

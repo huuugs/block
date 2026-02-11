@@ -40,11 +40,16 @@ UIManager::UIManager()
     , mainFont(nullptr)
     , secondaryFont(nullptr)
     , useCustomFont(false)
-    , primaryColor{100, 200, 255, 255}
-    , secondaryColor{50, 100, 150, 255}
-    , accentColor{255, 200, 50, 255}
-    , backgroundColor{20, 20, 40, 220}
+    , primaryColor{100, 200, 255, 255}      // Will be synced from theme in init()
+    , secondaryColor{50, 100, 150, 255}    // Will be synced from theme in init()
+    , accentColor{255, 200, 50, 255}       // Will be synced from theme in init()
+    , backgroundColor{20, 20, 40, 220}     // Will be synced from theme in init()
 {
+    // Initialize local colors from theme
+    primaryColor = currentTheme->primary;
+    secondaryColor = currentTheme->secondary;
+    accentColor = currentTheme->accent;
+    backgroundColor = currentTheme->background;
 }
 
 UIManager::~UIManager() {
@@ -95,6 +100,13 @@ void UIManager::setCurrentPanel(MenuPanel panel) {
 void UIManager::cycleTheme() {
     currentThemeIndex = (currentThemeIndex + 1) % NUM_THEMES;
     currentTheme = &themes[currentThemeIndex];
+
+    // Sync local color variables with theme (for backward compatibility)
+    primaryColor = currentTheme->primary;
+    secondaryColor = currentTheme->secondary;
+    accentColor = currentTheme->accent;
+    backgroundColor = currentTheme->background;
+
     applyThemeToGui();
 }
 
@@ -542,13 +554,17 @@ void UIManager::drawHUD(const Player* player) {
     // Top bar background with transparency
     drawPixelRect(0, 0, SCREEN_WIDTH, 60, backgroundColor);
 
-    // Health bar
+    // Health bar with label
     drawHealthBar(20, 10, 200, 20, player->getHealth(), player->getMaxHealth(), {200, 50, 50, 255});
+    const char* hpLabel = getText("HP", "生命");
+    drawTextWithFont(hpLabel, 5, 12, 12, {255, 200, 200, 255});
 
-    // Energy bar
+    // Energy bar with label
     drawEnergyBar(20, 35, 200, 15, player->getEnergy(), player->getMaxEnergy());
+    const char* energyLabel = getText("Energy", "能量");
+    drawTextWithFont(energyLabel, 5, 37, 10, {200, 200, 255, 255});
 
-    // Experience bar
+    // Experience bar with label
     drawExpBar(240, 10, 300, 20, 0, 100, {50, 200, 100, 255});
 }
 

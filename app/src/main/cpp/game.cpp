@@ -45,6 +45,9 @@ void Game::init() {
     assets = new AssetManager();
     assets->init();
 
+    // Generate and load space background texture
+    backgroundTexture = assets->GeneratePixelBackground();
+
     audio = new AudioManager();
     audio->init();
 
@@ -153,6 +156,11 @@ void Game::shutdown() {
         delete bullet;
     }
     bullets.clear();
+
+    // Unload background texture
+    if (backgroundTexture.id != 0) {
+        UnloadTexture(backgroundTexture);
+    }
 
     // Delete managers
     delete player;
@@ -442,16 +450,16 @@ void Game::updateLevelSelect() {
 }
 
 void Game::drawBackground() {
-    // Draw grid background
-    int gridSize = 40;
-    Color gridColor = {30, 30, 50, 255};
-    Color bgColor = {15, 15, 30, 255};
-
-    for (int x = 0; x < SCREEN_WIDTH; x += gridSize) {
-        DrawLine(x, 0, x, SCREEN_HEIGHT, gridColor);
-    }
-    for (int y = 0; y < SCREEN_HEIGHT; y += gridSize) {
-        DrawLine(0, y, SCREEN_WIDTH, y, gridColor);
+    // Draw space-themed background with stars
+    if (backgroundTexture.id != 0) {
+        // Draw the space background texture to fill the screen
+        DrawTextureRec(backgroundTexture,
+                       (Rectangle){0, 0, SCREEN_WIDTH, SCREEN_HEIGHT},
+                       (Vector2){0, 0},
+                       WHITE);
+    } else {
+        // Fallback: draw simple dark background
+        ClearBackground({15, 15, 30, 255});
     }
 }
 
