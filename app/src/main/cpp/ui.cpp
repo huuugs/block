@@ -805,8 +805,8 @@ void UIManager::drawLogs() {
 
     // Draw log count info
     char countText[64];
-    snprintf(countText, sizeof(countText), getText("Showing %d/%d logs", "显示 %d/%d 条日志").c_str(),
-             displayCount, displayCount);
+    const char* logCountMsg = getText("Showing %d/%d logs", "显示 %d/%d 条日志");
+    snprintf(countText, sizeof(countText), logCountMsg, displayCount, displayCount);
     drawTextWithFont(countText, 20, SCREEN_HEIGHT - 80, 14, {150, 150, 150, 255});
 
     // Back button
