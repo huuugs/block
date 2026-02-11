@@ -28,11 +28,26 @@ android {
 
     buildTypes {
         debug {
-            // Use default debug signing
+            // Use consistent debug signing configuration
+            // This ensures the same signature across builds for easy updates
+            signingConfig = signingConfigs.getByName("debug")
         }
         release {
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+
+    // Configure debug signing with consistent parameters
+    signingConfigs {
+        create("debug") {
+            // Use standard Android debug keystore
+            // The debug keystore is automatically created by Android Studio/Tools
+            // If using GitHub Actions, it will be created at: ~/.android/debug.keystore
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
         }
     }
 

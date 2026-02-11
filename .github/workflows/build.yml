@@ -21,6 +21,14 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
+    - name: Cache Android debug keystore
+      uses: actions/cache@v4
+      with:
+        path: ~/.android/debug.keystore
+        key: android-debug-keystore-v1
+        restore-keys: |
+          android-debug-keystore-v1
+
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -38,6 +46,29 @@ jobs:
       run: |
         echo "sdk.dir=$ANDROID_HOME" > local.properties
         echo "ndk.dir=$ANDROID_HOME/ndk/25.2.9519653" >> local.properties
+
+    - name: Create debug keystore for consistent signing
+      run: |
+        # Create .android directory if it doesn't exist
+        mkdir -p ~/.android
+
+        # Create debug keystore if it doesn't exist
+        if [ ! -f ~/.android/debug.keystore ]; then
+          keytool -genkeypair \
+            -v \
+            -storetype JKS \
+            -keystore ~/.android/debug.keystore \
+            -storepass android \
+            -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          echo "Debug keystore created"
+        else
+          echo "Debug keystore already exists"
+        fi
 
     - name: Check CMake version
       run: cmake --version
