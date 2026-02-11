@@ -20,28 +20,25 @@ void AssetManager::shutdown() {
 }
 
 void AssetManager::LoadFonts() {
-    TraceLog(LOG_INFO, "=== LoadFonts() START ===");
+    TraceLog(LOG_INFO, "=== LoadFonts() START [TRY ZPIX FIRST] ===");
 
-    // First try to load external font with Chinese support
+    // Try Zpix FIRST - it's smaller and more likely to work on Android
     bool loaded = false;
 
-    // IMPORTANT: Try Source Han Sans FIRST for full Chinese character support
-    // zpix.ttf is a pixel font with limited Chinese character support
-    // Source Han Sans has comprehensive CJK character coverage
-    TraceLog(LOG_INFO, "Attempting to load Source Han Sans...");
+    TraceLog(LOG_INFO, "Attempting to load Zpix font first...");
     if (!loaded) {
+        loaded = LoadExternalFont("fonts/zpix.ttf", 20);
+    }
+
+    // Fallback: Source Han Sans
+    if (!loaded) {
+        TraceLog(LOG_INFO, "Zpix failed, trying Source Han Sans...");
         loaded = LoadExternalFont("fonts/SourceHanSansCN-Regular.otf", 18);
     }
 
-    // Fallback: zpix pixel font (limited Chinese support)
+    // Fallback: Vonwaon pixel font
     if (!loaded) {
-        TraceLog(LOG_INFO, "Source Han Sans failed, trying zpix...");
-        loaded = LoadExternalFont("fonts/zpix.ttf", 16);
-    }
-
-    // Fallback: Vonwaon pixel font (likely no Chinese)
-    if (!loaded) {
-        TraceLog(LOG_INFO, "zpix failed, trying vonwaon...");
+        TraceLog(LOG_INFO, "Source Han Sans failed, trying vonwaon...");
         loaded = LoadExternalFont("fonts/vonwaon_pixel_12px.ttf", 12);
     }
 
@@ -52,7 +49,7 @@ void AssetManager::LoadFonts() {
         smallFont = GetFontDefault();
         TraceLog(LOG_WARNING, "Using default font (no Chinese support)");
     } else {
-        TraceLog(LOG_INFO, "External font loaded successfully");
+        TraceLog(LOG_INFO, TextFormat("FINAL: Font loaded with %d glyphs", pixelFont.glyphCount));
     }
 
     TraceLog(LOG_INFO, "=== LoadFonts() END ===");
@@ -234,168 +231,86 @@ Texture2D AssetManager::GeneratePixelBackground() {
     return tex;
 }
 
+// CLEAN VERSION of LoadExternalFont - Replace the function in assets.cpp with this
 bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
-    // Use character RANGES instead of individual characters for better Chinese support
-    // According to raylib docs, LoadFontEx can take ranges like {start, end, 0}
+    // Use FULL CJK range for complete Chinese character support
     static int* chineseCodepoints = nullptr;
     static int codepointCount = 0;
 
     if (chineseCodepoints == nullptr) {
-        // Define character ranges for:
-        // 1. ASCII (32-126)
-        // 2. CJK Unified Ideographs (0x4E00-0x9FFF) - common Chinese characters
-        // 3. CJK punctuation and symbols (0x3000-0x303F)
-        // Format: each range is {start, end, 0}
+        // ASCII (32-126) + Full CJK Unified Ideographs (0x4E00-0x9FFF)
+        // This covers ALL common Chinese characters (~21,000 characters)
+        const int cjkStart = 0x4E00;
+        const int cjkEnd = 0x9FFF;
+        const int cjkCount = cjkEnd - cjkStart + 1;
+        const int asciiCount = 95; // 32-126
 
-        // We'll use individual character listing for exact control
-        // But add the full CJK range as fallback
-        const int gameChineseChars[] = {
-            // ASCII range will be added separately
-
-            // Menu items - game specific Chinese characters
-            0x65B9, 0x5757, 0x541E, 0x5410, 0x8005,  // 方块吞噬者
-            0x65E0, 0x5C3D, 0x6A21, 0x5F0F,           // 无尽模式
-            0x5173, 0x5361, 0x6A21, 0x5F0F,           // 关卡模式
-            0x65F6, 0x95F4, 0x6311, 0x6218,           // 时间挑战
-            0x8BBE, 0x7F6E,                           // 设置
-            0x9000, 0x51FA,                           // 退出
-            0x6682, 0x505C,                           // 暂停
-            0x7EE7, 0x7EED,                           // 继续
-            0x8FD4, 0x56DE,                           // 返回
-            0x4E3B, 0x83DC, 0x5355,                   // 主菜单
-            0x6E38, 0x620F, 0x7ED3, 0x675F,           // 游戏结束
-            0x518D, 0x8BD5, 0x4E00, 0x6B21,           // 再试一次
-            0x6700, 0x7EC8, 0x5F97, 0x5206,           // 最终得分
-            0x8FBE, 0x5230, 0x7B49, 0x7EA7,           // 达到等级
-            0x9009, 0x62E9, 0x5173, 0x5361,           // 选择关卡
-            0x8BED, 0x8A00,                           // 语言
-            0x4E2D, 0x6587,                           // 中文
-            0x4E3B, 0x9898,                           // 主题
-            0x63A7, 0x5236,                           // 控制
-            0x6447, 0x6746,                           // 摇杆
-            0x97F3, 0x91CF,                           // 音量
-            0x89E6, 0x6478, 0x5DE6, 0x534A, 0x5C4F, 0x79FB, 0x52A8,  // 触摸左半屏移动
-            0x83F1, 0x5F62,                           // 菱形
-            0x80CC, 0x666F,                           // 背景
-            0x751F, 0x547D,                           // 生命 (HP label)
-            0x80FD, 0x91CF,                           // 能量 (Energy label)
-            0x7CFB, 0x7EDF,                           // 系统 - for log viewer title
-            0x65E5, 0x5FD7,                           // 日志 - for log viewer title
-            0x6761,                                   // 条 - for "条日志"
-            0x5230,                                   // 到 - "退出到菜单", "触摸跟随"
-            0xFF1A,                                   // ： - Chinese colon (for labels like "语言:")
-            0x8DDF, 0x968F,                           // 跟随 - "触摸跟随"
-            0x6D88,                                   // 消 - "取消静音"
-            0x9759,                                   // 静 - "静音", "取消静音" (音 already exists)
-            0x67E5,                                   // 查 - "查看日志"
-            0x770B,                                   // 看 - "查看日志"
-            0x7ECF, 0x9A8C,                           // 经验 - XP label
-        };
-
-        int chineseCharCount = sizeof(gameChineseChars) / sizeof(gameChineseChars[0]);
-
-        // ASCII (32-126) + game Chinese characters
-        codepointCount = 95 + chineseCharCount;
+        codepointCount = asciiCount + cjkCount;
         chineseCodepoints = (int*)malloc(codepointCount * sizeof(int));
 
         int idx = 0;
-        // Add ASCII characters (32-126) first
+        // Add ASCII characters first
         for (int i = 32; i <= 126; i++) {
             chineseCodepoints[idx++] = i;
         }
-        // Add Chinese characters
-        for (int i = 0; i < chineseCharCount; i++) {
-            chineseCodepoints[idx++] = gameChineseChars[i];
+        // Add FULL CJK range (all Chinese characters)
+        for (int i = cjkStart; i <= cjkEnd; i++) {
+            chineseCodepoints[idx++] = i;
         }
 
-        TraceLog(LOG_INFO, TextFormat("Font codepoints initialized: %d total (95 ASCII + %d Chinese)",
-            codepointCount, chineseCharCount));
-    } else {
-        TraceLog(LOG_INFO, "Using existing codepoints array");
+        TraceLog(LOG_INFO, TextFormat("CJK codepoints created: %d total (95 ASCII + %d CJK)",
+            codepointCount, cjkCount));
     }
 
-    TraceLog(LOG_INFO, TextFormat("LoadExternalFont: path=%s, size=%d, codepoints=%d",
-        fontPath, fontSize, codepointCount));
-
-    // Try loading from the given path first
-    bool fileExists = FileExists(fontPath);
-    TraceLog(LOG_INFO, TextFormat("FileExists(%s) = %s", fontPath, fileExists ? "true" : "false"));
-
-    if (fileExists) {
-        TraceLog(LOG_INFO, TextFormat("Loading font from: %s", fontPath));
-
-        // CRITICAL FIX: Don't pass codepoints - let raylib auto-load all font glyphs
-        // Passing codepoints was preventing Chinese characters from being loaded
-        pixelFont = LoadFontEx(fontPath, fontSize, nullptr, 0);
-        TraceLog(LOG_INFO, "Loading font WITHOUT explicit codepoints - auto-detect mode");
+    // Try loading from the given path
+    if (FileExists(fontPath)) {
+        TraceLog(LOG_INFO, TextFormat("Loading font: %s with %d codepoints", fontPath, codepointCount));
+        pixelFont = LoadFontEx(fontPath, fontSize, chineseCodepoints, codepointCount);
 
         if (pixelFont.texture.id != 0) {
-            TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded from %s", fontPath));
-            TraceLog(LOG_INFO, TextFormat("Font: ID=%u, size=%dx%d, glyphs=%d",
-                pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height, pixelFont.glyphCount));
-            TraceLog(LOG_INFO, TextFormat("Font baseSize: %d", pixelFont.baseSize));
-
+            TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded! glyphs=%d", pixelFont.glyphCount));
             SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
             GenTextureMipmaps(&pixelFont.texture);
 
-            smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), nullptr, 0);
+            smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
             if (smallFont.texture.id != 0) {
                 SetTextureFilter(smallFont.texture, TEXTURE_FILTER_BILINEAR);
                 GenTextureMipmaps(&smallFont.texture);
             } else {
                 smallFont = pixelFont;
             }
-
             return true;
-        } else {
-            TraceLog(LOG_ERROR, TextFormat("FAILED: Font texture ID is 0 for: %s", fontPath));
         }
     }
 
-    // On Android, try assets path - Source Han Sans FIRST for Chinese support
+    // On Android, try alternative paths
     #if defined(PLATFORM_ANDROID)
-    const char* androidPaths[] = {
-        "fonts/SourceHanSansCN-Regular.otf",  // Try Source Han Sans first - full CJK support
-        "SourceHanSansCN-Regular.otf",
-        "fonts/zpix.ttf",                      // Pixel font - limited Chinese
-        "zpix.ttf",
-        "fonts/vonwaon_pixel_12px.ttf",        // Pixel font - likely no Chinese
-        "vonwaon_pixel_12px.ttf"
-    };
+    const char* altPaths[] = {"fonts/zpix.ttf", "zpix.ttf",
+                               "fonts/SourceHanSansCN-Regular.otf", "SourceHanSansCN-Regular.otf"};
 
-    for (const char* path : androidPaths) {
+    for (const char* path : altPaths) {
         if (FileExists(path)) {
             TraceLog(LOG_INFO, TextFormat("Loading Android font: %s", path));
-
-            // CRITICAL FIX: Don't pass codepoints - let raylib auto-load all font glyphs
-            pixelFont = LoadFontEx(path, fontSize, nullptr, 0);
+            pixelFont = LoadFontEx(path, fontSize, chineseCodepoints, codepointCount);
             if (pixelFont.texture.id != 0) {
-                TraceLog(LOG_INFO, TextFormat("SUCCESS: Android font loaded from %s", path));
-                TraceLog(LOG_INFO, TextFormat("Font: ID=%u, size=%dx%d, glyphs=%d",
-                    pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height, pixelFont.glyphCount));
-
+                TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded! glyphs=%d", pixelFont.glyphCount));
                 SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
                 GenTextureMipmaps(&pixelFont.texture);
 
-                smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), nullptr, 0);
+                smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
                 if (smallFont.texture.id != 0) {
                     SetTextureFilter(smallFont.texture, TEXTURE_FILTER_BILINEAR);
                     GenTextureMipmaps(&smallFont.texture);
                 } else {
                     smallFont = pixelFont;
                 }
-
                 return true;
-            } else {
-                TraceLog(LOG_WARNING, TextFormat("FAILED: Font load returned texture ID 0 for: %s", path));
             }
-        } else {
-            TraceLog(LOG_WARNING, TextFormat("File not found: %s", path));
         }
     }
     #endif
 
-    TraceLog(LOG_ERROR, "All font loading attempts failed!");
+    TraceLog(LOG_ERROR, "Font loading failed!");
     return false;
 }
 
