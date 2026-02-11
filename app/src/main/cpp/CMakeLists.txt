@@ -6,25 +6,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
-# Raylib prebuilt library
+# Raylib prebuilt library (will be created by CI during build)
 set(RAYLIB_DIR ${CMAKE_SOURCE_DIR}/jniLibs/${ANDROID_ABI})
 
-# Check if raylib library exists
-if(NOT EXISTS "${RAYLIB_DIR}/libraylib.a")
-    message(FATAL_ERROR "Raylib library not found for ${ANDROID_ABI}. Expected: ${RAYLIB_DIR}/libraylib.a")
-endif()
-
-# Include raylib headers
+# Include raylib headers (will be created by CI during build)
 set(RAYLIB_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/include/raylib)
-if(EXISTS "${RAYLIB_INCLUDE_DIR}")
-    include_directories(
-        ${CMAKE_SOURCE_DIR}
-        ${RAYLIB_INCLUDE_DIR}
-        ${RAYLIB_INCLUDE_DIR}/external
-    )
-else()
-    message(FATAL_ERROR "Raylib headers not found at: ${RAYLIB_INCLUDE_DIR}")
-endif()
+include_directories(
+    ${CMAKE_SOURCE_DIR}
+    ${RAYLIB_INCLUDE_DIR}
+    ${RAYLIB_INCLUDE_DIR}/external
+)
 
 # Source files
 set(GAME_SOURCES
