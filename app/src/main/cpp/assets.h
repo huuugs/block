@@ -21,8 +21,8 @@ public:
 
     // Font loading
     void LoadFonts();
-    Font GetPixelFont() { return pixelFont; }
-    Font GetSmallFont() { return smallFont; }
+    Font& GetPixelFont() { return pixelFont; }
+    Font& GetSmallFont() { return smallFont; }
     
     // External font loading for Chinese support
     bool LoadExternalFont(const char* fontPath, int fontSize);

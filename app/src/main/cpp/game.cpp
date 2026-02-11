@@ -225,6 +225,11 @@ void Game::updatePlaying() {
 }
 
 void Game::updatePaused() {
+    // Store current state before any state changes
+    if (state != GameState::SETTINGS) {
+        previousState = state;
+    }
+    
     // Handle Pause Menu
     if (state == GameState::PAUSED) {
         int selection = ui->getPauseMenuSelection();
@@ -237,7 +242,6 @@ void Game::updatePaused() {
                     state = GameState::PLAYING;
                     break;
                 case 1:  // Settings (from pause)
-                    previousState = state;
                     state = GameState::SETTINGS;
                     ui->resetTransition();
                     break;
@@ -252,11 +256,6 @@ void Game::updatePaused() {
         }
     }
 }
-
-    // Store current state before switching to settings
-    if (state != GameState::SETTINGS) {
-        previousState = state;
-    }
 
 void Game::updateSettings() {
     int selection = ui->getSettingsSelection();
