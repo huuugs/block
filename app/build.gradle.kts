@@ -49,9 +49,7 @@ android {
     // Include font files in APK assets
     sourceSets {
         getByName("main") {
-            assets {
-                srcDirs += listOf("src/main/cpp/fonts")
-            }
+            assets.srcDirs("src/main/cpp/fonts")
         }
     }
 }
