@@ -239,14 +239,14 @@ void UIManager::drawPauseMenu() {
     int textWidth = MeasureText(text, fontSize);
     DrawText(text, SCREEN_WIDTH / 2 - textWidth / 2, 150, fontSize, WHITE);
 
-    // Buttons
+    // Buttons using raygui
     int buttonWidth = 250;
     int buttonHeight = 50;
 
-    drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, 250, buttonWidth, buttonHeight,
-                   getText("RESUME", "继续"), false, false);
-    drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, 320, buttonWidth, buttonHeight,
-                   getText("QUIT TO MENU", "退出到菜单"), false, false);
+    GuiButton((Rectangle){SCREEN_WIDTH / 2 - buttonWidth / 2, 250, (float)buttonWidth, (float)buttonHeight},
+              getText("RESUME", "继续"));
+    GuiButton((Rectangle){SCREEN_WIDTH / 2 - buttonWidth / 2, 320, (float)buttonWidth, (float)buttonHeight},
+              getText("QUIT TO MENU", "退出到菜单"));
 }
 
 void UIManager::drawGameOverMenu(int score, int level) {
@@ -280,14 +280,14 @@ void UIManager::drawGameOverMenu(int score, int level) {
     int levelWidth = MeasureText(levelText, scoreFontSize);
     DrawText(levelText, SCREEN_WIDTH / 2 - levelWidth / 2, 250, scoreFontSize, {255, 200, 50, 255});
 
-    // Buttons
+    // Buttons using raygui
     int buttonWidth = 250;
     int buttonHeight = 50;
 
-    drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, 350, buttonWidth, buttonHeight,
-                   getText("TRY AGAIN", "再试一次"), false, false);
-    drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, 420, buttonWidth, buttonHeight,
-                   getText("MAIN MENU", "主菜单"), false, false);
+    GuiButton((Rectangle){SCREEN_WIDTH / 2 - buttonWidth / 2, 350, (float)buttonWidth, (float)buttonHeight},
+              getText("TRY AGAIN", "再试一次"));
+    GuiButton((Rectangle){SCREEN_WIDTH / 2 - buttonWidth / 2, 420, (float)buttonWidth, (float)buttonHeight},
+              getText("MAIN MENU", "主菜单"));
 }
 
 void UIManager::drawLevelSelect() {
@@ -296,7 +296,7 @@ void UIManager::drawLevelSelect() {
     int textWidth = MeasureText(title, fontSize);
     DrawText(title, SCREEN_WIDTH / 2 - textWidth / 2, 50, fontSize, currentTheme->text);
 
-    // Level buttons (10 levels in 2 rows)
+    // Level buttons (10 levels in 2 rows) using raygui
     int buttonSize = 80;
     int startX = (SCREEN_WIDTH - 5 * (buttonSize + 20)) / 2 + 10;
     int startY = 150;
@@ -310,11 +310,11 @@ void UIManager::drawLevelSelect() {
         char levelText[16];
         sprintf(levelText, "%d", i + 1);
 
-        drawPixelButton(x, y, buttonSize, buttonSize, levelText, false, false);
+        GuiButton((Rectangle){(float)x, (float)y, (float)buttonSize, (float)buttonSize}, levelText);
     }
 
     // Back button
-    drawPixelButton(SCREEN_WIDTH / 2 - 100, 500, 200, 50, getText("BACK", "返回"), false, false);
+    GuiButton((Rectangle){SCREEN_WIDTH / 2 - 100, 500, 200, 50}, getText("BACK", "返回"));
 }
 
 void UIManager::drawSettings() {
@@ -324,35 +324,35 @@ void UIManager::drawSettings() {
     DrawText(title, SCREEN_WIDTH / 2 - textWidth / 2, 50, fontSize, currentTheme->text);
 
     // Language setting
-    DrawText(getText("Language:", "语言:"), 200, 130, 24, currentTheme->text);
+    DrawText(getText("Language:", "语言:"), 200, 135, 20, currentTheme->text);
     const char* langText = (language == Language::ENGLISH) ? "English" : "中文";
-    drawPixelButton(500, 120, 200, 50, langText, false, false);
+    GuiButton((Rectangle){500, 120, 200, 40}, langText);
 
     // Theme setting
-    DrawText(getText("Theme:", "主题:"), 200, 200, 24, currentTheme->text);
-    drawPixelButton(500, 190, 200, 50, currentTheme->name, false, false);
-    drawPixelButton(720, 190, 100, 50, getText("Next", "下一个"), false, false);
+    DrawText(getText("Theme:", "主题:"), 200, 205, 20, currentTheme->text);
+    GuiButton((Rectangle){500, 190, 200, 40}, currentTheme->name);
+    GuiButton((Rectangle){720, 190, 80, 40}, getText(">", ">"));
 
     // Control mode setting
-    DrawText(getText("Control Mode:", "控制模式:"), 200, 270, 24, currentTheme->text);
-    drawPixelButton(500, 260, 200, 50, getText("Virtual Joystick", "虚拟摇杆"), false, false);
-    drawPixelButton(720, 260, 200, 50, getText("Touch Follow", "触摸跟随"), false, false);
+    DrawText(getText("Control Mode:", "控制模式:"), 200, 275, 20, currentTheme->text);
+    GuiButton((Rectangle){500, 260, 200, 40}, getText("Virtual Joystick", "虚拟摇杆"));
+    GuiButton((Rectangle){720, 260, 200, 40}, getText("Touch Follow", "触摸跟随"));
 
-    // Volume settings
-    DrawText(getText("Master Volume:", "主音量:"), 200, 340, 24, currentTheme->text);
-    drawPixelRect(500, 350, 300, 20, {100, 100, 100, 255});
-    drawPixelRect(500, 350, 200, 20, {50, 200, 50, 255});
+    // Volume settings (visual only, using DrawRectangle)
+    DrawText(getText("Master Volume:", "主音量:"), 200, 355, 20, currentTheme->text);
+    DrawRectangle(500, 350, 300, 20, {100, 100, 100, 255});
+    DrawRectangle(500, 350, 200, 20, {50, 200, 50, 255});
 
-    DrawText(getText("SFX Volume:", "音效音量:"), 200, 390, 24, currentTheme->text);
-    drawPixelRect(500, 400, 300, 20, {100, 100, 100, 255});
-    drawPixelRect(500, 400, 250, 20, {50, 150, 255, 255});
+    DrawText(getText("SFX Volume:", "音效音量:"), 200, 405, 20, currentTheme->text);
+    DrawRectangle(500, 400, 300, 20, {100, 100, 100, 255});
+    DrawRectangle(500, 400, 250, 20, {50, 150, 255, 255});
 
-    DrawText(getText("Music Volume:", "音乐音量:"), 200, 440, 24, currentTheme->text);
-    drawPixelRect(500, 450, 300, 20, {100, 100, 100, 255});
-    drawPixelRect(500, 450, 150, 20, {255, 150, 50, 255});
+    DrawText(getText("Music Volume:", "音乐音量:"), 200, 455, 20, currentTheme->text);
+    DrawRectangle(500, 450, 300, 20, {100, 100, 100, 255});
+    DrawRectangle(500, 450, 150, 20, {255, 150, 50, 255});
 
     // Back button
-    drawPixelButton(SCREEN_WIDTH / 2 - 100, 550, 200, 50, getText("BACK", "返回"), false, false);
+    GuiButton((Rectangle){SCREEN_WIDTH / 2 - 100, 530, 200, 50}, getText("BACK", "返回"));
 }
 
 bool UIManager::isButtonClicked(int x, int y, int width, int height) {
