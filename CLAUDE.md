@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Block Eater is a raylib-based Android game written in C++17. It features a block-eating gameplay mechanic with multiple game modes, procedural audio, touch controls, and multi-language support (English/Chinese).
+Block Eater is a raylib-based Android game written in C++17. It features a block-eating gameplay mechanic with multiple game modes, procedural audio, touch controls, multi-language support (English/Chinese), and a user system with persistent statistics.
 
 ## Build Commands
 
@@ -36,6 +36,7 @@ The `Game` class (`game.h/cpp`) manages the entire game through a state machine:
 - `GameState::GAME_OVER` - Game over screen
 - `GameState::LEVEL_SELECT` - Level selection
 - `GameState::SETTINGS` - Settings (language, theme, controls)
+- `GameState::USER_MENU` - User system menu
 
 When switching states, always call `ui->resetTransition()` to prevent screen flash.
 
@@ -44,12 +45,15 @@ All game code lives in `app/src/main/cpp/`:
 - `game.h/cpp` - Main game class, state machine, game loop, entity management
 - `player.h/cpp` - Player entity with 6 progression levels
 - `enemy.h/cpp` - Four enemy types (Floating, Chasing, Stationary, Bouncing)
-- `ui.h/cpp` - Menu system, HUD, multi-language support, themes
+- `ui.h/cpp` - Menu system, HUD, multi-language support, themes, log viewer
 - `audio.h/cpp` - Procedural 8-bit sound generation
 - `modes.h/cpp` - Game mode logic (Endless, Level, Time Challenge)
 - `controls.h/cpp` - Virtual joystick and touch-follow input
 - `particles.h/cpp` - Visual effects
 - `assets.h/cpp` - Runtime asset generation and font loading
+- `userManager.h/cpp` - User system with statistics tracking
+- `user.h/cpp` - User data structure
+- `skills.h/cpp` - Skill system (4 skills with cooldowns)
 
 ### Namespace
 All game code uses `BlockEater::` namespace.
@@ -74,31 +78,44 @@ The project is configured for `arm64-v8a` only. The 32-bit build is disabled due
 - Narrowing conversions in initializer lists require explicit casts (e.g., `static_cast<unsigned int>()`)
 - raylib headers must be included as `#include "raylib.h"` (not `<raylib.h>`)
 
-## Critical: Chinese Font Support (Known Issue)
+## Critical: Chinese Font Support
 
-**CURRENT PROBLEM**: Chinese text displays as question marks (???) in menus. This is an ongoing issue despite multiple attempts to fix it.
+**SOLVED**: Chinese text displays correctly using `LoadFileData()` + `LoadFontFromMemory()` method.
 
-### Current Implementation
-1. **Font file**: `app/src/main/cpp/fonts/zpix.ttf` (7MB Chinese pixel font)
-2. **Font loading** (`assets.cpp`): Uses `LoadFontEx()` with explicit codepoint array containing only game-used Chinese characters (~100 characters)
-3. **Text rendering** (`ui.cpp`): Custom button drawing uses `DrawTextEx()` with loaded font
+### Working Implementation
+On Android, `LoadFontEx()` cannot access assets directory directly. The working solution uses:
 
-### What Has Been Tried
-- Loading full CJK range (0x4E00-0x9FFF) - caused memory issues
-- Loading only game-specific characters - still shows ???
-- Using raygui `GuiSetFont()` - raygui doesn't support custom fonts on Android
-- Custom button drawing with `DrawTextEx()` - current approach, still broken
+```cpp
+// Load font file into memory (works on Android!)
+unsigned char* fileData = LoadFileData(path, &fileSize);
+
+// Load font from memory
+const char* ext = (strstr(path, ".ttf") != nullptr) ? ".ttf" : ".otf";
+pixelFont = LoadFontFromMemory(ext, fileData, fileSize, fontSize, codepoints, codepointCount);
+UnloadFileData(fileData);
+```
+
+### Font Files (in `app/src/main/cpp/fonts/`)
+- `zpix.ttf` - Primary Chinese pixel font (smaller file)
+- `SourceHanSansCN-Regular.otf` - Full CJK support (larger file, ~7MB)
+- `vonwaon_pixel_12px.ttf` - Alternative pixel font
+
+### Font Loading Process
+1. `LoadCodepoints(allText, &codepointCount)` extracts unique characters from text
+2. `LoadFileData()` reads font file into memory
+3. `LoadFontFromMemory()` creates font from memory
+4. `SetTextureFilter()` and `GenTextureMipmaps()` optimize rendering
 
 ### Key Code Locations
-- `assets.cpp:146-268` - `LoadExternalFont()` with Chinese codepoint array
-- `ui.cpp:175-213` - Custom `drawButton()` using `DrawTextEx()`
-- `ui.cpp:625-645` - `drawTextWithFont()` and `measureTextWithFont()` helpers
+- `assets.cpp:234-401` - `LoadExternalFont()` using LoadFileData + LoadFontFromMemory
+- `ui.cpp:70-158` - `init()` with SetTraceLogCallback for log synchronization
+- `ui.cpp:814-834` - `drawTextWithFont()` and `measureTextWithFont()` helpers
 
 ### Important Notes
-- Font files are included via `build.gradle.kts` line 52: `assets.srcDirs("src/main/cpp/fonts")`
-- On Android, fonts are accessed from assets, not filesystem
+- Font files are included via `build.gradle.kts` line 56: `assets.srcDirs("src/main/cpp/fonts")`
+- On Android, fonts are accessed from APK assets, not filesystem
+- `SetTraceLogCallback` redirects all raylib logs to in-game log viewer
 - `useCustomFont` flag in `UIManager` indicates if font loaded successfully
-- Debug logging added to track font loading status
 
 ## Localization and Themes
 
@@ -182,3 +199,119 @@ Important implementation notes:
 - Joystick only draws when active (finger touching) - see `controls.cpp:114-130`
 - Joystick deactivates when `touchCount == 0` - see `controls.cpp:61-108`
 - Control mode state is synced between Game, UIManager, and ControlSystem
+
+## User System
+
+The game includes a user management system with persistent statistics:
+- **5 user slots** - Support for up to 5 different user profiles
+- **Statistics tracking** - High scores, play time, games played per mode
+- **Persistent storage** - Saved to `user_data.dat` in binary format
+- **Username support** - Chinese and English usernames supported
+
+### User Data Structure
+Each user tracks:
+- `username` - Display name (up to 63 characters)
+- `totalGamesPlayed`, `totalPlayTime`, `totalScore` - Aggregate stats
+- `endlessStats`, `levelStats`, `timeChallengeStats` - Per-mode statistics
+- `maxLevelUnlocked` - Progress tracking
+
+### Key Code Locations
+- `userManager.h/cpp` - User management and save/load
+- `user.h/cpp` - User data structure
+- `ui.cpp:978-1057` - `drawUserMenu()` for user selection UI
+- `game.cpp:75-77` - User manager initialization
+
+## Log Viewer System
+
+The game has an in-game log viewer accessible from Settings > "View Logs". All raylib logs are automatically redirected to this viewer.
+
+### Log Callback Setup
+```cpp
+SetTraceLogCallback([](int logLevel, const char* text, va_list args) -> void {
+    switch (logLevel) {
+        case LOG_INFO: UIManager::logInfo(text); break;
+        case LOG_WARNING: UIManager::logWarning(text); break;
+        case LOG_ERROR: UIManager::logError(text); break;
+        default: UIManager::logInfo(text); break;
+    }
+});
+```
+
+### Log Buffer
+- `MAX_LOG_ENTRIES = 50` - Circular buffer holds last 50 log entries
+- `MAX_LOG_LENGTH = 256` - Each log entry up to 256 characters
+- Located in `ui.cpp:25-28` - Static log buffer implementation
+- Draw log viewer in `ui.cpp:890-935`
+
+## Game Modes
+
+### Endless Mode
+- Continuous gameplay with increasing difficulty
+- No time limit
+- Score and level progression only
+
+### Level Mode
+- 10 predefined levels with specific objectives
+- Some levels have time limits (check `levelDefinitions` in `modes.cpp`)
+- Objectives: reach score, reach level, or survive for time
+
+### Time Challenge
+- 3-minute countdown timer
+- Eating food blocks adds bonus time
+- Goal: maximize score before time runs out
+
+## Skill System
+
+The player has 4 active skills with cooldowns:
+1. **Speed Boost** - Temporary movement speed increase
+2. **Shield** - Arc-shaped shield that blocks enemies
+3. **Dash** - Quick burst movement in facing direction
+4. **Magnet** - Attract nearby food blocks
+
+### Important Notes
+- Skills use energy from player's energy bar
+- Each skill has independent cooldown
+- Shield requires `shieldTimeLeft = shieldDuration` initialization (bug fix applied)
+- See `skills.cpp:60-95` for skill activation logic
+
+## Background and Assets
+
+The game generates its own assets at runtime to reduce APK size:
+- **Space background** - Procedurally generated with stars (`assets.cpp:149-232`)
+- **Pixel blocks** - Generated with edge effects (`assets.cpp:58-105`)
+- **Audio** - Procedural 8-bit chiptune sounds (`audio.cpp`)
+
+Background texture is loaded in `game.cpp:51` and drawn with `drawBackground()`.
+
+## Known Issues and Bugs Fixed
+
+### Fixed: Shield Not Displaying
+**Problem**: Skill 4 (shield) didn't appear when used
+**Solution**: Added `shieldTimeLeft = shieldDuration;` in `skills.cpp:86`
+
+### Fixed: Level Mode Instant Death
+**Problem**: Entering level mode caused immediate game over
+**Solution**: Fixed time limit loading - levels with `timeLimit = 0` have no time limit
+
+### Fixed: Chinese Font Not Loading
+**Problem**: `LoadFontEx()` couldn't access Android assets
+**Solution**: Use `LoadFileData()` + `LoadFontFromMemory()` pattern (see Font Support section)
+
+## Adding New Content
+
+### Adding New Chinese Text
+1. Add Chinese characters to `allChineseText` in `assets.cpp:241-316`
+2. Use `getText("English", "中文")` in UI code
+3. Rebuild APK to test
+
+### Adding New Game State
+1. Add enum value to `GameState` in `game.h`
+2. Add `update*()` and `draw*()` methods in `game.cpp`
+3. Add state handling to `update()` and `draw()` switch statements
+4. Add corresponding panel to `MenuPanel` enum in `ui.h`
+
+### Adding New Settings Option
+1. Add storage variable to `UIManager` class in `ui.h`
+2. Add UI controls in `drawSettings()` (`ui.cpp:580-694`)
+3. Add selection handler in `updateSettings()` (`game.cpp`)
+4. Save/load logic if persistent storage needed
