@@ -272,6 +272,14 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
             0x7CFB, 0x7EDF,                           // 系统 - for log viewer title
             0x65E5, 0x5FD7,                           // 日志 - for log viewer title
             0x6761,                                   // 条 - for "条日志"
+            0x5230,                                   // 到 - "退出到菜单", "触摸跟随"
+            0xFF1A,                                   // ： - Chinese colon (for labels like "语言:")
+            0x8DDF, 0x968F,                           // 跟随 - "触摸跟随"
+            0x6D88,                                   // 消 - "取消静音"
+            0x9759,                                   // 静 - "静音", "取消静音" (音 already exists)
+            0x67E5,                                   // 查 - "查看日志"
+            0x770B,                                   // 看 - "查看日志"
+            0x7ECF, 0x9A8C,                           // 经验 - XP label
         };
 
         int chineseCharCount = sizeof(gameChineseChars) / sizeof(gameChineseChars[0]);
