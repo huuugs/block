@@ -191,6 +191,12 @@ void UIManager::drawLevel(int level) {
 void UIManager::drawMainMenu() {
     float alpha = menuAnimation;
 
+    // Update menu animation
+    if (menuAnimation < 1.0f) {
+        menuAnimation += GetFrameTime() * 2.0f;
+        if (menuAnimation > 1.0f) menuAnimation = 1.0f;
+    }
+
     // Title
     const char* title = getText("BLOCK EATER", "方块吞噬者");
     int titleFontSize = 60;
@@ -199,27 +205,28 @@ void UIManager::drawMainMenu() {
     Color titleColor = {255, static_cast<unsigned char>(200 + 55 * sinf(GetTime() * 3)), 50, 255};
     DrawText(title, SCREEN_WIDTH / 2 - titleWidth / 2, 100, titleFontSize, titleColor);
 
-    // Menu buttons
-    int startY = 250;
-    int buttonHeight = 60;
-    int buttonWidth = 300;
-    int gap = 80;
+    // Menu buttons using raygui
+    float buttonWidth = 280;
+    float buttonHeight = 50;
+    float startY = 220;
+    float spacing = 10;
 
-    drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, startY, buttonWidth, buttonHeight,
-                   getText("PLAY ENDLESS", "无尽模式"), false, false);
-    drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, startY + gap, buttonWidth, buttonHeight,
-                   getText("LEVEL MODE", "关卡模式"), false, false);
-    drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, startY + gap * 2, buttonWidth, buttonHeight,
-                   getText("TIME CHALLENGE", "时间挑战"), false, false);
-    drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, startY + gap * 3, buttonWidth, buttonHeight,
-                   getText("SETTINGS", "设置"), false, false);
-    drawPixelButton(SCREEN_WIDTH / 2 - buttonWidth / 2, startY + gap * 4, buttonWidth, buttonHeight,
-                   getText("QUIT", "退出"), false, false);
+    // Draw buttons (visual only, click handling in game.cpp)
+    GuiButton((Rectangle){SCREEN_WIDTH/2 - buttonWidth/2, startY, buttonWidth, buttonHeight},
+              getText("PLAY ENDLESS", "无尽模式"));
+    GuiButton((Rectangle){SCREEN_WIDTH/2 - buttonWidth/2, startY + (buttonHeight + spacing) * 1, buttonWidth, buttonHeight},
+              getText("LEVEL MODE", "关卡模式"));
+    GuiButton((Rectangle){SCREEN_WIDTH/2 - buttonWidth/2, startY + (buttonHeight + spacing) * 2, buttonWidth, buttonHeight},
+              getText("TIME CHALLENGE", "时间挑战"));
+    GuiButton((Rectangle){SCREEN_WIDTH/2 - buttonWidth/2, startY + (buttonHeight + spacing) * 3, buttonWidth, buttonHeight},
+              getText("SETTINGS", "设置"));
+    GuiButton((Rectangle){SCREEN_WIDTH/2 - buttonWidth/2, startY + (buttonHeight + spacing) * 4, buttonWidth, buttonHeight},
+              getText("QUIT", "退出"));
 
     // Instructions
-    const char* instructions = getText("Touch controls enabled", "触控已启用");
-    int instrWidth = MeasureText(instructions, 16);
-    DrawText(instructions, SCREEN_WIDTH / 2 - instrWidth / 2, SCREEN_HEIGHT - 50, 16, {150, 150, 150, 255});
+    const char* instructions = getText("Touch left side to move", "触摸左半屏移动");
+    int instrWidth = MeasureText(instructions, 14);
+    DrawText(instructions, SCREEN_WIDTH / 2 - instrWidth / 2, SCREEN_HEIGHT - 40, 14, {150, 150, 150, 255});
 }
 
 void UIManager::drawPauseMenu() {
