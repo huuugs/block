@@ -38,6 +38,7 @@ set(GAME_SOURCES
     modes.cpp
     controls.cpp
     assets.cpp
+    camera.cpp
 )
 
 # Create shared library
