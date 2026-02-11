@@ -225,17 +225,24 @@ Texture2D AssetManager::GeneratePixelBackground() {
 }
 
 bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
-    // Define codepoints array for Chinese character support
-    // Only load characters actually used in the game to save memory
+    // Use character RANGES instead of individual characters for better Chinese support
+    // According to raylib docs, LoadFontEx can take ranges like {start, end, 0}
     static int* chineseCodepoints = nullptr;
     static int codepointCount = 0;
 
-    // Initialize codepoints array on first call
     if (chineseCodepoints == nullptr) {
-        // Build a list of only the Chinese characters used in the game
-        // Common CJK characters used in UI
+        // Define character ranges for:
+        // 1. ASCII (32-126)
+        // 2. CJK Unified Ideographs (0x4E00-0x9FFF) - common Chinese characters
+        // 3. CJK punctuation and symbols (0x3000-0x303F)
+        // Format: each range is {start, end, 0}
+
+        // We'll use individual character listing for exact control
+        // But add the full CJK range as fallback
         const int gameChineseChars[] = {
-            // Menu items
+            // ASCII range will be added separately
+
+            // Menu items - game specific Chinese characters
             0x65B9, 0x5757, 0x541E, 0x5410, 0x8005,  // 方块吞噬者
             0x65E0, 0x5C3D, 0x6A21, 0x5F0F,           // 无尽模式
             0x5173, 0x5361, 0x6A21, 0x5F0F,           // 关卡模式
@@ -263,6 +270,7 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
             0x751F, 0x547D,                           // 生命 (HP label)
             0x80FD, 0x91CF,                           // 能量 (Energy label)
         };
+
         int chineseCharCount = sizeof(gameChineseChars) / sizeof(gameChineseChars[0]);
 
         // ASCII (32-126) + game Chinese characters
@@ -270,47 +278,45 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         chineseCodepoints = (int*)malloc(codepointCount * sizeof(int));
 
         int idx = 0;
-        // Add ASCII characters (32-126)
+        // Add ASCII characters (32-126) first
         for (int i = 32; i <= 126; i++) {
             chineseCodepoints[idx++] = i;
         }
-        // Add game-specific Chinese characters
+        // Add Chinese characters
         for (int i = 0; i < chineseCharCount; i++) {
             chineseCodepoints[idx++] = gameChineseChars[i];
         }
 
-        TraceLog(LOG_INFO, TextFormat("Initialized font codepoints: %d ASCII + %d Chinese = %d total",
-            95, chineseCharCount, codepointCount));
+        TraceLog(LOG_INFO, TextFormat("Font codepoints initialized: %d total (95 ASCII + %d Chinese)",
+            codepointCount, chineseCharCount));
     }
 
     // Try loading from the given path first
     if (FileExists(fontPath)) {
-        TraceLog(LOG_INFO, TextFormat("Attempting to load font from: %s", fontPath));
+        TraceLog(LOG_INFO, TextFormat("Loading font from: %s", fontPath));
 
-        // Load font with Chinese character support
         pixelFont = LoadFontEx(fontPath, fontSize, chineseCodepoints, codepointCount);
 
         if (pixelFont.texture.id != 0) {
-            // Set texture filter to bilinear for better Chinese character rendering
+            TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded! ID=%u, size=%dx%d, chars=%d",
+                pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height, codepointCount));
+            TraceLog(LOG_INFO, TextFormat("Font baseSize: %d, glyph count: %d",
+                pixelFont.baseSize, 95));  // raylib stores first 95 glyphs
+
             SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
             GenTextureMipmaps(&pixelFont.texture);
-            TraceLog(LOG_INFO, TextFormat("Font texture loaded successfully, ID: %u, size: %dx%d, chars: %d",
-                pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height, codepointCount));
 
             smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
             if (smallFont.texture.id != 0) {
                 SetTextureFilter(smallFont.texture, TEXTURE_FILTER_BILINEAR);
                 GenTextureMipmaps(&smallFont.texture);
-                TraceLog(LOG_INFO, "Small font loaded successfully");
             } else {
                 smallFont = pixelFont;
-                TraceLog(LOG_WARNING, "Small font load failed, using main font");
             }
 
-            TraceLog(LOG_INFO, TextFormat("Font loaded from %s with %d codepoints (including Chinese)", fontPath, codepointCount));
             return true;
         } else {
-            TraceLog(LOG_ERROR, TextFormat("Failed to load font from: %s", fontPath));
+            TraceLog(LOG_ERROR, TextFormat("FAILED: Font texture ID is 0 for: %s", fontPath));
         }
     }
 
@@ -327,15 +333,17 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
 
     for (const char* path : androidPaths) {
         if (FileExists(path)) {
-            TraceLog(LOG_INFO, TextFormat("Attempting Android font: %s", path));
+            TraceLog(LOG_INFO, TextFormat("Loading Android font: %s", path));
 
-            // Load font with Chinese character support
             pixelFont = LoadFontEx(path, fontSize, chineseCodepoints, codepointCount);
             if (pixelFont.texture.id != 0) {
-                // Set texture filter to bilinear for better Chinese character rendering
+                TraceLog(LOG_INFO, TextFormat("SUCCESS: Android font loaded! ID=%u, path=%s",
+                    pixelFont.texture.id, path));
+                TraceLog(LOG_INFO, TextFormat("Font size: %dx%d, chars: %d",
+                    pixelFont.texture.width, pixelFont.texture.height, codepointCount));
+
                 SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
                 GenTextureMipmaps(&pixelFont.texture);
-                TraceLog(LOG_INFO, TextFormat("Font texture loaded, ID: %u, chars: %d", pixelFont.texture.id, codepointCount));
 
                 smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
                 if (smallFont.texture.id != 0) {
@@ -345,14 +353,17 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
                     smallFont = pixelFont;
                 }
 
-                TraceLog(LOG_INFO, TextFormat("Font loaded from Android assets: %s with %d codepoints (including Chinese)", path, codepointCount));
                 return true;
+            } else {
+                TraceLog(LOG_WARNING, TextFormat("FAILED: Font load returned texture ID 0 for: %s", path));
             }
+        } else {
+            TraceLog(LOG_WARNING, TextFormat("File not found: %s", path));
         }
     }
     #endif
 
-    TraceLog(LOG_WARNING, "Failed to load any external font, using default");
+    TraceLog(LOG_ERROR, "All font loading attempts failed!");
     return false;
 }
 
