@@ -28,7 +28,7 @@ UIManager::UIManager()
     , currentTheme(&themes[0])
     , currentControlMode(ControlMode::VIRTUAL_JOYSTICK)
     , masterVolume(0.8f)
-    , isMuted(false)
+    , m_isMuted(false)
     , currentPanel(MenuPanel::NONE)
     , previousPanel(MenuPanel::NONE)
     , mainMenuSelection(-1)
@@ -501,7 +501,7 @@ void UIManager::drawSettings() {
     DrawRectangle((int)valueX, (int)(volumeY + 10), 300, 20, {50, 50, 50, 200});
     // Volume level
     int volumeWidth = (int)(300 * masterVolume);
-    DrawRectangle((int)valueX, (int)(volumeY + 10), volumeWidth, 20, isMuted ? (Color){80, 80, 80, 200} : (Color){50, 200, 50, 255});
+    DrawRectangle((int)valueX, (int)(volumeY + 10), volumeWidth, 20, m_isMuted ? (Color){80, 80, 80, 200} : (Color){50, 200, 50, 255});
     DrawRectangleLines((int)valueX, (int)(volumeY + 10), 300, 20, {150, 150, 150, 200});
 
     // Volume slider interaction (click to set volume)
@@ -522,7 +522,7 @@ void UIManager::drawSettings() {
     }
 
     // Mute button
-    const char* muteText = isMuted ? getText("Unmute", "取消静音") : getText("Mute", "静音");
+    const char* muteText = m_isMuted ? getText("Unmute", "取消静音") : getText("Mute", "静音");
     float muteX = valueX + 320;
     if (drawButton(muteX, volumeY, 80.0f, 20, muteText)) {
         settingsSelection = 4;  // Toggle mute

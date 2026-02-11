@@ -85,8 +85,8 @@ public:
     // Volume control
     void setMasterVolume(float volume) { masterVolume = volume; }
     float getMasterVolume() const { return masterVolume; }
-    bool isMuted() const { return isMuted; }
-    void toggleMute() { isMuted = !isMuted; }
+    bool isMuted() const { return m_isMuted; }
+    void toggleMute() { m_isMuted = !m_isMuted; }
 
     // Text translation helper
     const char* getText(const char* english, const char* chinese);
@@ -149,7 +149,7 @@ private:
 
     // Volume control
     float masterVolume;
-    bool isMuted;
+    bool m_isMuted;
 
     // Current UI panel for isolation
     MenuPanel currentPanel;
