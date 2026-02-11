@@ -74,14 +74,25 @@ void UIManager::init(Font* mFont, Font* sFont) {
     // Log detailed font information
     if (mainFont != nullptr) {
         char fontInfo[128];
-        snprintf(fontInfo, sizeof(fontInfo), "Font ID: %u, size: %dx%d, baseSize: %d",
-            mainFont->texture.id, mainFont->texture.width, mainFont->texture.height, mainFont->baseSize);
+        snprintf(fontInfo, sizeof(fontInfo), "Font ID: %u, size: %dx%d, baseSize: %d, glyphCount: %d",
+            mainFont->texture.id, mainFont->texture.width, mainFont->texture.height, mainFont->baseSize, mainFont->glyphCount);
         logInfo(fontInfo);
 
         if (mainFont->texture.id == 1 || mainFont->texture.id == 0) {
             logWarning("Font texture ID is 0 or 1 (likely default font - NO CHINESE)");
         } else {
-            logInfo("Custom font texture loaded (should support Chinese)");
+            logInfo("Custom font texture loaded");
+        }
+
+        // Check if font has enough glyphs for Chinese
+        if (mainFont->glyphCount < 100) {
+            char warnMsg[128];
+            snprintf(warnMsg, sizeof(warnMsg), "WARNING: Only %d glyphs loaded (need ~200 for Chinese)", mainFont->glyphCount);
+            logWarning(warnMsg);
+        } else {
+            char infoMsg[128];
+            snprintf(infoMsg, sizeof(infoMsg), "Font has %d glyphs (should include Chinese)", mainFont->glyphCount);
+            logInfo(infoMsg);
         }
     } else {
         logError("Font pointer is NULL!");
@@ -284,6 +295,13 @@ void UIManager::drawMainMenu() {
     if (useCustomFont && mainFont != nullptr) {
         GuiSetFont(*mainFont);
         GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
+    }
+
+    // TEST: Draw Chinese characters directly at top of screen
+    if (mainFont != nullptr && mainFont->glyphCount > 100) {
+        const char* testText = "测试中文: 生命能量";
+        DrawTextEx(*mainFont, testText, (Vector2){10, 10}, 24, 2, GREEN);
+        DrawTextEx(*mainFont, "方块吞噬者", (Vector2){10, 40}, 24, 2, YELLOW);
     }
 
     // Animated title
