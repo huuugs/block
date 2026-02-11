@@ -231,54 +231,88 @@ Texture2D AssetManager::GeneratePixelBackground() {
     return tex;
 }
 
-// CLEAN VERSION of LoadExternalFont - Replace the function in assets.cpp with this
+// LoadExternalFont using LoadCodepoints method (like the WeChat public account example)
 bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
-    // Use FULL CJK range for complete Chinese character support
-    static int* chineseCodepoints = nullptr;
-    static int codepointCount = 0;
+    // IMPORTANT: Use LoadCodepoints() to automatically extract characters from string
+    // This is the method from the working example!
 
-    if (chineseCodepoints == nullptr) {
-        // ASCII (32-126) + Full CJK Unified Ideographs (0x4E00-0x9FFF)
-        // This covers ALL common Chinese characters (~21,000 characters)
-        const int cjkStart = 0x4E00;
-        const int cjkEnd = 0x9FFF;
-        const int cjkCount = cjkEnd - cjkStart + 1;
-        const int asciiCount = 95; // 32-126
+    // Collect all Chinese text used in the game into one string
+    const char* allChineseText =
+        "方块吞噬者无尽模式关卡模式时间挑战设置返回开始继续退出重新开始"
+        "生命能量等级分数时间"
+        "主题蓝色深色绿色紫色红色"
+        "语言中文英文"
+        "控制虚拟摇杆触摸跟随"
+        "字体思源黑体Zpix默认"
+        "普通困难专家"
+        "第关"
+        "暂停游戏结束胜利失败"
+        "技能方向不能同时响应"
+        "字体加载成功加载失败"
+        "使用默认字体中文可能无法正确显示"
+        "当前语言"
+        "已经切换到"
+        "主题"
+        "控制方式"
+        "日志查看器"
+        "所有日志已同步"
+        "HP"
+        "当前等级"
+        "当前分数"
+        "剩余时间"
+        "关卡选择"
+        "请选择关卡"
+        "无尽模式"
+        "关卡模式"
+        "时间挑战"
+        "设置"
+        "主菜单"
+        "暂停"
+        "游戏结束"
+        "你赢了"
+        "你死了"
+        "再玩一次"
+        "继续游戏"
+        "返回主菜单"
+        "技能4没有出现弧形防护罩"
+        "选关卡的模式一进去就直接死了"
+        "ASCII测试中文字符测试";
 
-        codepointCount = asciiCount + cjkCount;
-        chineseCodepoints = (int*)malloc(codepointCount * sizeof(int));
+    // Add ASCII range manually
+    char allText[1024];
+    snprintf(allText, sizeof(allText),
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        " !\"#$%%&'()*+,-./:;<=>?@[\\]^_`{|}~%s",
+        allChineseText);
 
-        int idx = 0;
-        // Add ASCII characters first
-        for (int i = 32; i <= 126; i++) {
-            chineseCodepoints[idx++] = i;
-        }
-        // Add FULL CJK range (all Chinese characters)
-        for (int i = cjkStart; i <= cjkEnd; i++) {
-            chineseCodepoints[idx++] = i;
-        }
+    TraceLog(LOG_INFO, "=== LoadExternalFont START (LoadCodepoints method) ===");
 
-        TraceLog(LOG_INFO, TextFormat("CJK codepoints created: %d total (95 ASCII + %d CJK)",
-            codepointCount, cjkCount));
-    }
+    // Use LoadCodepoints to automatically extract characters from text
+    int codepointCount = 0;
+    int* codepoints = LoadCodepoints(allText, &codepointCount);
+
+    TraceLog(LOG_INFO, TextFormat("LoadCodepoints extracted %d characters from text", codepointCount));
 
     // Try loading from the given path
     if (FileExists(fontPath)) {
         TraceLog(LOG_INFO, TextFormat("Loading font: %s with %d codepoints", fontPath, codepointCount));
-        pixelFont = LoadFontEx(fontPath, fontSize, chineseCodepoints, codepointCount);
+        pixelFont = LoadFontEx(fontPath, fontSize, codepoints, codepointCount);
 
         if (pixelFont.texture.id != 0) {
-            TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded! glyphs=%d", pixelFont.glyphCount));
+            TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded! glyphs=%d (expected %d)",
+                pixelFont.glyphCount, codepointCount));
             SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
             GenTextureMipmaps(&pixelFont.texture);
 
-            smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
+            smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), codepoints, codepointCount);
             if (smallFont.texture.id != 0) {
                 SetTextureFilter(smallFont.texture, TEXTURE_FILTER_BILINEAR);
                 GenTextureMipmaps(&smallFont.texture);
             } else {
                 smallFont = pixelFont;
             }
+
+            UnloadCodepoints(codepoints);
             return true;
         }
     }
@@ -291,25 +325,29 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
     for (const char* path : altPaths) {
         if (FileExists(path)) {
             TraceLog(LOG_INFO, TextFormat("Loading Android font: %s", path));
-            pixelFont = LoadFontEx(path, fontSize, chineseCodepoints, codepointCount);
+            pixelFont = LoadFontEx(path, fontSize, codepoints, codepointCount);
             if (pixelFont.texture.id != 0) {
-                TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded! glyphs=%d", pixelFont.glyphCount));
+                TraceLog(LOG_INFO, TextFormat("SUCCESS: Font loaded! glyphs=%d (expected %d)",
+                    pixelFont.glyphCount, codepointCount));
                 SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
                 GenTextureMipmaps(&pixelFont.texture);
 
-                smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
+                smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), codepoints, codepointCount);
                 if (smallFont.texture.id != 0) {
                     SetTextureFilter(smallFont.texture, TEXTURE_FILTER_BILINEAR);
                     GenTextureMipmaps(&smallFont.texture);
                 } else {
                     smallFont = pixelFont;
                 }
+
+                UnloadCodepoints(codepoints);
                 return true;
             }
         }
     }
     #endif
 
+    UnloadCodepoints(codepoints);
     TraceLog(LOG_ERROR, "Font loading failed!");
     return false;
 }
