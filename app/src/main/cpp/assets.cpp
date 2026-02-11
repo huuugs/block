@@ -20,34 +20,42 @@ void AssetManager::shutdown() {
 }
 
 void AssetManager::LoadFonts() {
+    TraceLog(LOG_INFO, "=== LoadFonts() START ===");
+
     // First try to load external font with Chinese support
     bool loaded = false;
 
     // IMPORTANT: Try Source Han Sans FIRST for full Chinese character support
     // zpix.ttf is a pixel font with limited Chinese character support
     // Source Han Sans has comprehensive CJK character coverage
+    TraceLog(LOG_INFO, "Attempting to load Source Han Sans...");
     if (!loaded) {
         loaded = LoadExternalFont("fonts/SourceHanSansCN-Regular.otf", 18);
     }
 
     // Fallback: zpix pixel font (limited Chinese support)
     if (!loaded) {
+        TraceLog(LOG_INFO, "Source Han Sans failed, trying zpix...");
         loaded = LoadExternalFont("fonts/zpix.ttf", 16);
     }
 
     // Fallback: Vonwaon pixel font (likely no Chinese)
     if (!loaded) {
+        TraceLog(LOG_INFO, "zpix failed, trying vonwaon...");
         loaded = LoadExternalFont("fonts/vonwaon_pixel_12px.ttf", 12);
     }
 
     // Fallback: use default raylib font if external fonts not available
     if (!loaded) {
+        TraceLog(LOG_ERROR, "All external fonts failed!");
         pixelFont = GetFontDefault();
         smallFont = GetFontDefault();
         TraceLog(LOG_WARNING, "Using default font (no Chinese support)");
     } else {
         TraceLog(LOG_INFO, "External font loaded successfully");
     }
+
+    TraceLog(LOG_INFO, "=== LoadFonts() END ===");
 }
 
 Image AssetManager::CreatePixelBlockImage(Color color, int size) {
@@ -302,10 +310,18 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
 
         TraceLog(LOG_INFO, TextFormat("Font codepoints initialized: %d total (95 ASCII + %d Chinese)",
             codepointCount, chineseCharCount));
+    } else {
+        TraceLog(LOG_INFO, "Using existing codepoints array");
     }
 
+    TraceLog(LOG_INFO, TextFormat("LoadExternalFont: path=%s, size=%d, codepoints=%d",
+        fontPath, fontSize, codepointCount));
+
     // Try loading from the given path first
-    if (FileExists(fontPath)) {
+    bool fileExists = FileExists(fontPath);
+    TraceLog(LOG_INFO, TextFormat("FileExists(%s) = %s", fontPath, fileExists ? "true" : "false"));
+
+    if (fileExists) {
         TraceLog(LOG_INFO, TextFormat("Loading font from: %s", fontPath));
 
         pixelFont = LoadFontEx(fontPath, fontSize, chineseCodepoints, codepointCount);
