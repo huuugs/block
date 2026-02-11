@@ -975,8 +975,6 @@ void UIManager::reloadFonts(Font* mainFont, Font* sFont) {
     }
 }
 
-} // namespace BlockEater
-
 void UIManager::drawUserMenu(const UserManager* userManager) {
     if (!userManager) {
         logError("drawUserMenu: userManager is null");
@@ -1057,3 +1055,5 @@ void UIManager::drawUserMenu(const UserManager* userManager) {
         userMenuSelection = 2;  // Back
     }
 }
+
+} // namespace BlockEater
