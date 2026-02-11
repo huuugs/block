@@ -104,7 +104,7 @@ public:
     void reloadFonts(Font* mainFont, Font* sFont);
 
     // Text translation helper
-    const char* getText(const char* english, const char* chinese);
+    const char* getText(const char* english, const char* chinese) const;
 
     // Menu handling with proper isolation
     MenuPanel getCurrentPanel() const { return currentPanel; }

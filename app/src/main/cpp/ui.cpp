@@ -707,7 +707,7 @@ void UIManager::drawMiniMap() {
     DrawCircle(dotX, dotY, 4, GREEN);
 }
 
-const char* UIManager::getText(const char* english, const char* chinese) {
+const char* UIManager::getText(const char* english, const char* chinese) const {
     return (language == Language::CHINESE) ? chinese : english;
 }
 
