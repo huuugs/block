@@ -456,34 +456,36 @@ void Game::spawnEnemies() {
     minEnemies = (minEnemies > 30) ? 30 : minEnemies;
 
     if ((int)enemies.size() < minEnemies) {
-        // Get camera visible bounds for spawning around player view
-        Rectangle visibleArea = camera->getVisibleBounds();
+        // Use player position directly for spawning (more reliable than camera bounds)
+        Vector2 playerPos = player->getPosition();
+        float spawnRadius = 400.0f;  // Spawn enemies within this radius of player
+        float minSpawnDistance = 200.0f;  // Don't spawn too close to player
 
-        // Spawn new enemy around camera view
+        // Spawn new enemy around player
         int side = rand() % 4;
         Vector2 pos;
-        int margin = 100;
+        float offset = 300.0f;  // Distance from player to spawn
 
         switch (side) {
             case 0:  // Top
-                pos = {visibleArea.x + (float)(rand() % (int)visibleArea.width), visibleArea.y - margin};
+                pos = {playerPos.x + (float)(rand() % 400 - 200), playerPos.y - offset};
                 break;
             case 1:  // Bottom
-                pos = {visibleArea.x + (float)(rand() % (int)visibleArea.width), visibleArea.y + visibleArea.height + margin};
+                pos = {playerPos.x + (float)(rand() % 400 - 200), playerPos.y + offset};
                 break;
             case 2:  // Left
-                pos = {visibleArea.x - margin, visibleArea.y + (float)(rand() % (int)visibleArea.height)};
+                pos = {playerPos.x - offset, playerPos.y + (float)(rand() % 400 - 200)};
                 break;
             case 3:  // Right
-                pos = {visibleArea.x + visibleArea.width + margin, visibleArea.y + (float)(rand() % (int)visibleArea.height)};
+                pos = {playerPos.x + offset, playerPos.y + (float)(rand() % 400 - 200)};
                 break;
         }
 
         // Clamp to world bounds
-        if (pos.x < 0) pos.x = 0;
-        if (pos.x > WORLD_WIDTH) pos.x = (float)WORLD_WIDTH;
-        if (pos.y < 0) pos.y = 0;
-        if (pos.y > WORLD_HEIGHT) pos.y = (float)WORLD_HEIGHT;
+        if (pos.x < 50) pos.x = 50;
+        if (pos.x > WORLD_WIDTH - 50) pos.x = (float)WORLD_WIDTH - 50;
+        if (pos.y < 50) pos.y = 50;
+        if (pos.y > WORLD_HEIGHT - 50) pos.y = (float)WORLD_HEIGHT - 50;
 
         // Determine enemy type based on player level
         EnemyType type = EnemyType::FLOATING;
