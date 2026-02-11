@@ -253,7 +253,7 @@ void AudioManager::playBackgroundMusic(bool play) {
 
 void AudioManager::setMasterVolume(float volume) {
     masterVolume = fmaxf(0.0f, fminf(1.0f, volume));
-    SetMasterVolume(masterVolume);
+    updateVolume();
 }
 
 void AudioManager::setSfxVolume(float volume) {

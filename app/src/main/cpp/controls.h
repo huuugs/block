@@ -28,6 +28,7 @@ public:
     void draw();
 
     Vector2 getInputVector() const;
+    Vector2 getInputVector(Vector2 playerPos) const;  // For touch follow mode
     ControlMode getMode() const { return mode; }
     void setMode(ControlMode m) { mode = m; }
     void toggleMode();
@@ -49,7 +50,6 @@ private:
     void drawPauseButton();
 
     Vector2 getJoystickInput();
-    Vector2 getTouchFollowInput();
 };
 
 } // namespace BlockEater

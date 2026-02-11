@@ -50,6 +50,16 @@ public:
     void setSfxVolume(float volume);
     void setMusicVolume(float volume);
 
+    // Getters for volume
+    float getMasterVolume() const { return masterVolume; }
+    float getSfxVolume() const { return sfxVolume; }
+    float getMusicVolume() const { return musicVolume; }
+    bool isMuted() const { return isMuted; }
+
+    // Mute/unmute
+    void toggleMute() { isMuted = !isMuted; updateVolume(); }
+    void setMuted(bool muted) { isMuted = muted; updateVolume(); }
+
 private:
     Sound eatSounds[6];
     Sound hitSound;
@@ -62,6 +72,13 @@ private:
     float sfxVolume;
     float musicVolume;
     bool musicPlaying;
+    bool isMuted = false;
+
+    // Helper to update actual volume based on mute state
+    void updateVolume() {
+        float effectiveVolume = isMuted ? 0.0f : masterVolume;
+        SetMasterVolume(effectiveVolume);
+    }
 };
 
 } // namespace BlockEater

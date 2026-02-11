@@ -44,6 +44,8 @@ void Game::init() {
 
     audio = new AudioManager();
     audio->init();
+    // Set initial volume from UI
+    audio->setMasterVolume(ui->getMasterVolume());
 
     controls = new ControlSystem();
     controls->init();
@@ -186,8 +188,8 @@ void Game::updatePlaying() {
     // Update camera first (follow player)
     camera->update(player->getPosition(), deltaTime);
 
-    // Update player
-    Vector2 input = controls->getInputVector();
+    // Update player - pass player position for touch follow mode
+    Vector2 input = controls->getInputVector(player->getPosition());
     player->move(input);
     player->update(deltaTime);
 
@@ -214,12 +216,12 @@ void Game::updatePlaying() {
     // Update UI
     ui->update(deltaTime);
 
-    // Check for menu button click (top right corner)
+    // Check for pause button click (top right corner)
     if ((GetTouchPointCount() > 0) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
         Vector2 pos = (GetTouchPointCount() > 0) ? GetTouchPosition(0) : GetMousePosition();
-        // Menu button area: x=SCREEN_WIDTH-80 to SCREEN_WIDTH-10, y=10 to 45
-        if (pos.x >= SCREEN_WIDTH - 80 && pos.x <= SCREEN_WIDTH - 10 &&
-            pos.y >= 10 && pos.y <= 45) {
+        // Pause button area: x=SCREEN_WIDTH-100 to SCREEN_WIDTH-50, y=30 to 80
+        if (pos.x >= SCREEN_WIDTH - 100 && pos.x <= SCREEN_WIDTH - 50 &&
+            pos.y >= 30 && pos.y <= 80) {
             state = GameState::PAUSED;
             audio->playButtonClickSound();
         }
@@ -279,7 +281,16 @@ void Game::updateSettings() {
                 ui->setControlMode(controlMode);  // Update UI display
                 controls->setMode(controlMode);   // Update controls
                 break;
-            case 3:  // Back
+            case 3:  // Back (was previous case 3)
+                state = previousState;
+                ui->resetTransition();
+                break;
+            case 4:  // Toggle Mute
+                ui->toggleMute();
+                audio->setMuted(ui->isMuted());
+                audio->setMasterVolume(ui->getMasterVolume());
+                break;
+            case 5:  // Back (new position)
                 state = previousState;
                 ui->resetTransition();
                 break;
@@ -375,15 +386,7 @@ void Game::drawPlaying() {
         ui->drawTimer(timeRemaining);
     }
 
-    // Draw menu button (top right corner)
-    const char* menuText = ui->getText("MENU", "菜单");
-    int menuFontSize = 16;
-    int menuTextWidth = MeasureText(menuText, menuFontSize);
-    DrawRectangle(SCREEN_WIDTH - 80, 10, 70, 35, {50, 50, 80, 200});
-    DrawRectangleLines(SCREEN_WIDTH - 80, 10, 70, 35, {100, 100, 150, 255});
-    DrawText(menuText, SCREEN_WIDTH - 80 + (70 - menuTextWidth) / 2, 20, menuFontSize, WHITE);
-
-    // Draw controls
+    // Draw controls (includes pause button)
     controls->draw();
 }
 
@@ -456,36 +459,36 @@ void Game::spawnEnemies() {
     minEnemies = (minEnemies > 30) ? 30 : minEnemies;
 
     if ((int)enemies.size() < minEnemies) {
-        // Use player position directly for spawning (more reliable than camera bounds)
+        // Use player position directly for spawning
         Vector2 playerPos = player->getPosition();
-        float spawnRadius = 400.0f;  // Spawn enemies within this radius of player
-        float minSpawnDistance = 200.0f;  // Don't spawn too close to player
 
-        // Spawn new enemy around player
+        // Spawn new enemy around player with safe distance
         int side = rand() % 4;
         Vector2 pos;
-        float offset = 300.0f;  // Distance from player to spawn
+        float minSpawnDist = player->getSize() + 100.0f;  // Minimum safe distance
+        float maxSpawnDist = minSpawnDist + 200.0f;     // Maximum spawn distance
+        float spawnDist = minSpawnDist + (float)(rand() % (int)(maxSpawnDist - minSpawnDist));
 
         switch (side) {
             case 0:  // Top
-                pos = {playerPos.x + (float)(rand() % 400 - 200), playerPos.y - offset};
+                pos = {playerPos.x + (float)(rand() % 200 - 100), playerPos.y - spawnDist};
                 break;
             case 1:  // Bottom
-                pos = {playerPos.x + (float)(rand() % 400 - 200), playerPos.y + offset};
+                pos = {playerPos.x + (float)(rand() % 200 - 100), playerPos.y + spawnDist};
                 break;
             case 2:  // Left
-                pos = {playerPos.x - offset, playerPos.y + (float)(rand() % 400 - 200)};
+                pos = {playerPos.x - spawnDist, playerPos.y + (float)(rand() % 200 - 100)};
                 break;
             case 3:  // Right
-                pos = {playerPos.x + offset, playerPos.y + (float)(rand() % 400 - 200)};
+                pos = {playerPos.x + spawnDist, playerPos.y + (float)(rand() % 200 - 100)};
                 break;
         }
 
         // Clamp to world bounds
-        if (pos.x < 50) pos.x = 50;
-        if (pos.x > WORLD_WIDTH - 50) pos.x = (float)WORLD_WIDTH - 50;
-        if (pos.y < 50) pos.y = 50;
-        if (pos.y > WORLD_HEIGHT - 50) pos.y = (float)WORLD_HEIGHT - 50;
+        if (pos.x < 100) pos.x = 100;
+        if (pos.x > WORLD_WIDTH - 100) pos.x = (float)WORLD_WIDTH - 100;
+        if (pos.y < 100) pos.y = 100;
+        if (pos.y > WORLD_HEIGHT - 100) pos.y = (float)WORLD_HEIGHT - 100;
 
         // Determine enemy type based on player level
         EnemyType type = EnemyType::FLOATING;
@@ -500,8 +503,12 @@ void Game::spawnEnemies() {
             else if (typeRoll < 50) type = EnemyType::BOUNCING;
         }
 
-        // Determine size based on player level
-        int size = 20 + (rand() % (player->getSize() + 20));
+        // Determine size - ensure enemies are not too small for current player level
+        int playerSize = player->getSize();
+        int minEnemySize = playerSize - 10;
+        int maxEnemySize = playerSize + 30;
+        if (minEnemySize < 15) minEnemySize = 15;
+        int size = minEnemySize + (rand() % (maxEnemySize - minEnemySize));
 
         Enemy* enemy = new Enemy(type, pos, size);
         enemies.push_back(enemy);

@@ -27,6 +27,8 @@ UIManager::UIManager()
     , currentThemeIndex(0)
     , currentTheme(&themes[0])
     , currentControlMode(ControlMode::VIRTUAL_JOYSTICK)
+    , masterVolume(0.8f)
+    , isMuted(false)
     , currentPanel(MenuPanel::NONE)
     , previousPanel(MenuPanel::NONE)
     , mainMenuSelection(-1)
@@ -491,20 +493,46 @@ void UIManager::drawSettings() {
         settingsSelection = 2;  // Toggle control mode
     }
 
-    // Volume sliders (visual)
+    // Volume sliders (interactive)
     float volumeY = startY + spacing * 3;
     drawTextWithFont(getText("Volume:", "音量:"), (int)labelX, (int)(volumeY + 15), 20, currentTheme->text);
-    
+
     // Volume bar background
-    DrawRectangle((int)valueX, (int)(volumeY + 10), 300, 20, {100, 100, 100, 255});
+    DrawRectangle((int)valueX, (int)(volumeY + 10), 300, 20, {50, 50, 50, 200});
     // Volume level
-    DrawRectangle((int)valueX, (int)(volumeY + 10), 200, 20, {50, 200, 50, 255});
+    int volumeWidth = (int)(300 * masterVolume);
+    DrawRectangle((int)valueX, (int)(volumeY + 10), volumeWidth, 20, isMuted ? (Color){80, 80, 80, 200} : (Color){50, 200, 50, 255});
+    DrawRectangleLines((int)valueX, (int)(volumeY + 10), 300, 20, {150, 150, 150, 200});
+
+    // Volume slider interaction (click to set volume)
+    Vector2 sliderPos;
+    int touchCount = GetTouchPointCount();
+    if (touchCount > 0) {
+        sliderPos = GetTouchPosition(0);
+    } else {
+        sliderPos = GetMousePosition();
+    }
+
+    Rectangle sliderBounds = {(float)valueX, volumeY, 300.0f, 20.0f};
+    if (CheckCollisionPointRec(sliderPos, sliderBounds)) {
+        if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && touchCount == 0) || touchCount > 0) {
+            float relativeX = sliderPos.x - valueX;
+            masterVolume = fmaxf(0.0f, fminf(1.0f, relativeX / 300.0f));
+        }
+    }
+
+    // Mute button
+    const char* muteText = isMuted ? getText("Unmute", "取消静音") : getText("Mute", "静音");
+    float muteX = valueX + 320;
+    if (drawButton(muteX, volumeY, 80.0f, 20, muteText)) {
+        settingsSelection = 4;  // Toggle mute
+    }
 
     // Back button at bottom
-    float backY = 500.0f;
-    if (drawButton((float)(SCREEN_WIDTH / 2) - 100, backY, 200.0f, 50.0f, 
+    float backY = 550.0f;
+    if (drawButton((float)(SCREEN_WIDTH / 2) - 100, backY, 200.0f, 50.0f,
                    getText("BACK", "返回"))) {
-        settingsSelection = 3;  // Back
+        settingsSelection = 5;  // Back (moved to 5 to accommodate mute)
     }
 }
 

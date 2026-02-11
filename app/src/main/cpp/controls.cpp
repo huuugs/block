@@ -39,9 +39,20 @@ Vector2 ControlSystem::getInputVector() const {
     if (mode == ControlMode::VIRTUAL_JOYSTICK) {
         return joystick.input;
     } else {
+        // Touch follow mode - requires player position to work properly
+        // This version is a fallback that will be replaced by the overload
+        return {0, 0};
+    }
+}
+
+Vector2 ControlSystem::getInputVector(Vector2 playerPos) const {
+    if (mode == ControlMode::VIRTUAL_JOYSTICK) {
+        return joystick.input;
+    } else {
+        // Touch follow mode - calculate direction from touch to player
         if (GetTouchPointCount() > 0) {
             Vector2 touchPos = GetTouchPosition(0);
-            Vector2 playerPos = {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};  // Will be updated by game
+            // Calculate direction from player toward touch point
             return Vector2Normalize(touchPos - playerPos);
         }
     }
@@ -160,15 +171,6 @@ void ControlSystem::drawPauseButton() {
 
 Vector2 ControlSystem::getJoystickInput() {
     return joystick.input;
-}
-
-Vector2 ControlSystem::getTouchFollowInput() {
-    if (GetTouchPointCount() > 0) {
-        Vector2 touchPos = GetTouchPosition(0);
-        Vector2 playerPos = {SCREEN_WIDTH / 2.0f, SCREEN_HEIGHT / 2.0f};
-        return Vector2Normalize(touchPos - playerPos);
-    }
-    return {0, 0};
 }
 
 } // namespace BlockEater

@@ -82,6 +82,12 @@ public:
     void setControlMode(ControlMode mode) { currentControlMode = mode; }
     ControlMode getControlMode() const { return currentControlMode; }
 
+    // Volume control
+    void setMasterVolume(float volume) { masterVolume = volume; }
+    float getMasterVolume() const { return masterVolume; }
+    bool isMuted() const { return isMuted; }
+    void toggleMute() { isMuted = !isMuted; }
+
     // Text translation helper
     const char* getText(const char* english, const char* chinese);
 
@@ -140,6 +146,10 @@ private:
 
     // Control mode (for settings display)
     ControlMode currentControlMode;
+
+    // Volume control
+    float masterVolume;
+    bool isMuted;
 
     // Current UI panel for isolation
     MenuPanel currentPanel;
