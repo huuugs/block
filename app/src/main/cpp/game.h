@@ -68,6 +68,7 @@ class UIManager;
 class AudioManager;
 class ControlSystem;
 class AssetManager;
+class GameCamera;
 
 // Main Game class
 class Game {
@@ -100,6 +101,7 @@ public:
     AudioManager* audio;
     ControlSystem* controls;
     AssetManager* assets;
+    GameCamera* camera;
 
 private:
     GameState state;

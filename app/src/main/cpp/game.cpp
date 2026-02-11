@@ -7,6 +7,7 @@
 #include "modes.h"
 #include "controls.h"
 #include "assets.h"
+#include "camera.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -20,6 +21,7 @@ Game::Game()
     , audio(nullptr)
     , controls(nullptr)
     , assets(nullptr)
+    , camera(nullptr)
     , state(GameState::MENU)
     , mode(GameMode::ENDLESS)
     , controlMode(ControlMode::VIRTUAL_JOYSTICK)
@@ -48,6 +50,10 @@ void Game::init() {
     ui = new UIManager();
 
     particles = new ParticleSystem();
+
+    // Initialize camera
+    camera = new GameCamera();
+    camera->init();
 
     // Create player
     player = new Player();
@@ -136,6 +142,7 @@ void Game::shutdown() {
     delete audio;
     delete controls;
     delete assets;
+    delete camera;
 }
 
 void Game::updateMenu() {
@@ -174,6 +181,9 @@ void Game::updateMenu() {
 }
 
 void Game::updatePlaying() {
+    // Update camera first (follow player)
+    camera->update(player->getPosition(), deltaTime);
+
     // Update player
     Vector2 input = controls->getInputVector();
     player->move(input);
@@ -336,6 +346,9 @@ void Game::drawMenu() {
 }
 
 void Game::drawPlaying() {
+    // Apply camera for world rendering
+    camera->apply();
+
     // Draw player
     player->draw();
 
@@ -344,7 +357,10 @@ void Game::drawPlaying() {
         enemy->draw();
     }
 
-    // Draw UI
+    // End camera mode (switch back to screen space for UI)
+    camera->end();
+
+    // Draw UI (in screen space)
     ui->drawHUD(player);
     ui->drawScore(score);
 
