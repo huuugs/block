@@ -77,28 +77,28 @@ void ControlSystem::updateJoystick() {
         }
     }
 
-    // Update joystick input
-    if (joystick.active && joystick.touchId >= 0 && joystick.touchId < touchCount) {
-        Vector2 touchPos = GetTouchPosition(joystick.touchId);
-        Vector2 delta = touchPos - joystick.origin;
-
-        float dist = Vector2Length(delta);
-        if (dist > joystick.radius) {
-            delta = Vector2Normalize(delta) * joystick.radius;
-        }
-
-        joystick.input = {delta.x / joystick.radius, delta.y / joystick.radius};
-
-        // Release if finger is lifted
+    // Update joystick input if active
+    if (joystick.active) {
+        // Check if our tracked touch still exists
         bool touchFound = false;
-        for (int i = 0; i < touchCount; i++) {
-            if (i == joystick.touchId) {
-                touchFound = true;
-                break;
+        if (joystick.touchId >= 0 && joystick.touchId < touchCount) {
+            // Touch ID is valid, check if touch position changed significantly
+            // (this indicates a new touch at the same index)
+            touchFound = true;
+
+            Vector2 touchPos = GetTouchPosition(joystick.touchId);
+            Vector2 delta = touchPos - joystick.origin;
+
+            float dist = Vector2Length(delta);
+            if (dist > joystick.radius) {
+                delta = Vector2Normalize(delta) * joystick.radius;
             }
+
+            joystick.input = {delta.x / joystick.radius, delta.y / joystick.radius};
         }
 
-        if (!touchFound) {
+        // If touch not found or count changed unexpectedly, deactivate joystick
+        if (!touchFound || touchCount == 0) {
             joystick.active = false;
             joystick.input = {0, 0};
             joystick.touchId = -1;
