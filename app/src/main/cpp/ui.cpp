@@ -302,27 +302,34 @@ void UIManager::drawMainMenu() {
         // Test 1: ASCII (should work)
         DrawTextEx(*mainFont, "TEST ASCII", (Vector2){10, 10}, 24, 2, GREEN);
 
-        // Test 2: Try loading a Chinese character using its glyph index
-        // First, let's see if we can find Chinese glyphs in the font
-        int chineseCharFound = 0;
+        // Test 2: Show first 10 Chinese glyphs that were actually loaded
+        int displayY = 40;
+        int chineseShown = 0;
 
-        // Check if any Chinese glyphs exist (glyph index > 95 for Chinese)
-        for (int i = 0; i < mainFont->glyphCount; i++) {
-            if (mainFont->glyphs[i].value > 127) {
-                chineseCharFound++;
+        for (int i = 95; i < mainFont->glyphCount && chineseShown < 10; i++) {
+            int charValue = mainFont->glyphs[i].value;
+            if (charValue > 127) {
+                // Draw the character using its Unicode value
+                char str[5];
+                int utf8Len = 0;
+                // Convert Unicode to UTF-8
+                if (charValue <= 0x7FF) {
+                    str[0] = 0xC0 | (charValue >> 6);
+                    str[1] = 0x80 | (charValue & 0x3F);
+                    utf8Len = 2;
+                } else if (charValue <= 0xFFFF) {
+                    str[0] = 0xE0 | (charValue >> 12);
+                    str[1] = 0x80 | ((charValue >> 6) & 0x3F);
+                    str[2] = 0x80 | (charValue & 0x3F);
+                    utf8Len = 3;
+                }
+                str[utf8Len] = '\0';
+
+                DrawTextEx(*mainFont, str, (Vector2){10, (float)displayY}, 20, 1, YELLOW);
+                displayY += 25;
+                chineseShown++;
             }
         }
-
-        if (chineseCharFound > 0) {
-            char info[64];
-            snprintf(info, sizeof(info), "Found %d Chinese glyphs", chineseCharFound);
-            DrawTextEx(*mainFont, info, (Vector2){10, 40}, 18, 1, YELLOW);
-        } else {
-            DrawTextEx(*mainFont, "NO CHINESE GLYPHS FOUND!", (Vector2){10, 40}, 18, 1, RED);
-        }
-
-        // Test 3: Try to draw a simple Chinese character
-        DrawTextEx(*mainFont, "中文", (Vector2){10, 70}, 24, 2, WHITE);
     }
 
     // Animated title
