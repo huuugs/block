@@ -109,6 +109,7 @@ public:
 
 private:
     GameState state;
+    GameState previousState;
     GameMode mode;
     ControlMode controlMode;
     int score;
@@ -122,6 +123,7 @@ private:
     void updatePaused();
     void updateGameOver();
     void updateLevelSelect();
+    void updateSettings();
 
     void drawMenu();
     void drawPlaying();

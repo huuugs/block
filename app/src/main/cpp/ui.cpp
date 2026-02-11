@@ -1,6 +1,5 @@
 #include "ui.h"
 #include "player.h"
-#include "raygui.h"
 #include <cstdio>
 #include <cmath>
 
@@ -27,6 +26,17 @@ UIManager::UIManager()
     , language(Language::ENGLISH)
     , currentThemeIndex(0)
     , currentTheme(&themes[0])
+    , currentPanel(MenuPanel::NONE)
+    , previousPanel(MenuPanel::NONE)
+    , mainMenuSelection(-1)
+    , pauseMenuSelection(-1)
+    , gameOverSelection(-1)
+    , levelSelectSelection(-1)
+    , settingsSelection(-1)
+    , selectedLevel(-1)
+    , mainFont(nullptr)
+    , secondaryFont(nullptr)
+    , useCustomFont(false)
     , primaryColor{100, 200, 255, 255}
     , secondaryColor{50, 100, 150, 255}
     , accentColor{255, 200, 50, 255}
@@ -35,6 +45,54 @@ UIManager::UIManager()
 }
 
 UIManager::~UIManager() {
+}
+
+void UIManager::init(Font* mFont, Font* sFont) {
+    mainFont = mFont;
+    secondaryFont = sFont;
+    useCustomFont = (mainFont != nullptr && mainFont->texture.id != 0);
+    
+    // Initialize raygui style
+    GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
+    applyThemeToGui();
+    
+    // Set raygui font if custom font is available
+    if (useCustomFont) {
+        GuiSetFont(*mainFont);
+        TraceLog(LOG_INFO, "UIManager: Using custom font for Chinese support");
+    } else {
+        TraceLog(LOG_INFO, "UIManager: Using default font (limited Chinese support)");
+    }
+}
+
+void UIManager::applyThemeToGui() {
+    // Apply current theme colors to raygui
+    GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL, ColorToInt(currentTheme->background));
+    GuiSetStyle(DEFAULT, BASE_COLOR_FOCUSED, ColorToInt(currentTheme->secondary));
+    GuiSetStyle(DEFAULT, BASE_COLOR_PRESSED, ColorToInt(currentTheme->primary));
+    GuiSetStyle(DEFAULT, BORDER_COLOR_NORMAL, ColorToInt(currentTheme->secondary));
+    GuiSetStyle(DEFAULT, BORDER_COLOR_FOCUSED, ColorToInt(currentTheme->accent));
+    GuiSetStyle(DEFAULT, TEXT_COLOR_NORMAL, ColorToInt(currentTheme->text));
+    GuiSetStyle(DEFAULT, TEXT_COLOR_FOCUSED, ColorToInt(currentTheme->accent));
+}
+
+void UIManager::setLanguage(Language lang) {
+    language = lang;
+}
+
+void UIManager::setCurrentPanel(MenuPanel panel) {
+    if (currentPanel != panel) {
+        previousPanel = currentPanel;
+        currentPanel = panel;
+        clearSelections();
+        menuAnimation = 0.0f;  // Reset animation for new panel
+    }
+}
+
+void UIManager::cycleTheme() {
+    currentThemeIndex = (currentThemeIndex + 1) % NUM_THEMES;
+    currentTheme = &themes[currentThemeIndex];
+    applyThemeToGui();
 }
 
 void UIManager::update(float dt) {
@@ -56,12 +114,41 @@ void UIManager::draw(GameState state, GameMode mode) {
         if (transitionAlpha > 1.0f) transitionAlpha = 1.0f;
     }
 
+    // Map GameState to MenuPanel for proper isolation
+    MenuPanel targetPanel = MenuPanel::NONE;
+    switch (state) {
+        case GameState::MENU:
+            targetPanel = MenuPanel::MAIN_MENU;
+            break;
+        case GameState::PLAYING:
+            // HUD is drawn separately, no menu panel
+            break;
+        case GameState::PAUSED:
+            targetPanel = MenuPanel::PAUSE_MENU;
+            break;
+        case GameState::GAME_OVER:
+            targetPanel = MenuPanel::GAME_OVER;
+            break;
+        case GameState::LEVEL_SELECT:
+            targetPanel = MenuPanel::LEVEL_SELECT;
+            break;
+        case GameState::SETTINGS:
+            targetPanel = MenuPanel::SETTINGS;
+            break;
+    }
+
+    // Update current panel if changed
+    if (targetPanel != MenuPanel::NONE && currentPanel != targetPanel) {
+        setCurrentPanel(targetPanel);
+    }
+
+    // Draw based on state
     switch (state) {
         case GameState::MENU:
             drawMainMenu();
             break;
         case GameState::PLAYING:
-            drawHUD(nullptr);  // Will be called with player from game
+            // HUD is drawn by game.cpp with player reference
             break;
         case GameState::PAUSED:
             drawPauseMenu();
@@ -84,108 +171,25 @@ void UIManager::draw(GameState state, GameMode mode) {
     }
 }
 
-void UIManager::drawHUD(const Player* player) {
-    if (!player) return;
-
-    // Top bar background
-    drawPixelRect(0, 0, SCREEN_WIDTH, 60, backgroundColor);
-
-    // Health bar
-    drawHealthBar(20, 10, 200, 20, player->getHealth(), player->getMaxHealth(), {200, 50, 50, 255});
-
-    // Energy bar
-    drawEnergyBar(20, 35, 200, 15, player->getEnergy(), player->getMaxEnergy());
-
-    // Experience bar
-    drawExpBar(240, 10, 300, 20, 0, 100, {50, 200, 100, 255});
-
-    // Level indicator
-    drawLevel(player->getLevel());
-
-    // Score (placeholder)
-    drawScore(0);
+bool UIManager::drawButton(float x, float y, float width, float height, const char* text, bool enabled) {
+    Rectangle bounds = {x, y, width, height};
+    
+    if (!enabled) {
+        GuiSetState(STATE_DISABLED);
+    }
+    
+    int result = GuiButton(bounds, text);
+    
+    if (!enabled) {
+        GuiSetState(STATE_NORMAL);
+    }
+    
+    return result;
 }
 
-void UIManager::drawHealthBar(float x, float y, float width, float height, int current, int max, Color color) {
-    // Background
-    drawPixelRect((int)x, (int)y, (int)width, (int)height, {30, 30, 30, 255});
-
-    // Fill
-    float fillWidth = (float)current / max * width;
-    drawPixelRect((int)x, (int)y, (int)fillWidth, (int)height, color);
-
-    // Border
-    drawPixelRect((int)x, (int)y, (int)width, (int)height, WHITE, false);
-
-    // Text
-    char text[32];
-    sprintf(text, "HP: %d/%d", current, max);
-    DrawText(text, (int)(x + 5), (int)(y + 2), 10, WHITE);
-}
-
-void UIManager::drawEnergyBar(float x, float y, float width, float height, float current, float max) {
-    // Background
-    drawPixelRect((int)x, (int)y, (int)width, (int)height, {30, 30, 30, 255});
-
-    // Fill
-    float fillWidth = current / max * width;
-    drawPixelRect((int)x, (int)y, (int)fillWidth, (int)height, {50, 150, 255, 255});
-
-    // Border
-    drawPixelRect((int)x, (int)y, (int)width, (int)height, WHITE, false);
-}
-
-void UIManager::drawExpBar(float x, float y, float width, float height, int current, int max, Color color) {
-    // Background
-    drawPixelRect((int)x, (int)y, (int)width, (int)height, {30, 30, 30, 255});
-
-    // Fill (placeholder - using current XP ratio)
-    float fillRatio = 0.5f;  // Will be updated by player
-    float fillWidth = fillRatio * width;
-    drawPixelRect((int)x, (int)y, (int)fillWidth, (int)height, color);
-
-    // Border
-    drawPixelRect((int)x, (int)y, (int)width, (int)height, WHITE, false);
-
-    // Text
-    DrawText("EXP", (int)(x + 5), (int)(y + 2), 10, WHITE);
-}
-
-void UIManager::drawMiniMap() {
-    // Mini map in corner
-    int mapSize = 100;
-    int x = SCREEN_WIDTH - mapSize - 20;
-    int y = SCREEN_HEIGHT - mapSize - 100;
-
-    drawPixelRect(x, y, mapSize, mapSize, {0, 0, 0, 150});
-    drawPixelRect(x, y, mapSize, mapSize, {100, 100, 150, 255}, false);
-}
-
-void UIManager::drawScore(int score) {
-    char text[32];
-    sprintf(text, "SCORE: %d", score);
-
-    int fontSize = 20;
-    int textWidth = MeasureText(text, fontSize);
-    DrawText(text, SCREEN_WIDTH - textWidth - 20, 10, fontSize, WHITE);
-}
-
-void UIManager::drawTimer(float time) {
-    int minutes = (int)(time / 60);
-    int seconds = (int)(time) % 60;
-
-    char text[32];
-    sprintf(text, "%02d:%02d", minutes, seconds);
-
-    int fontSize = 30;
-    int textWidth = MeasureText(text, fontSize);
-    DrawText(text, SCREEN_WIDTH / 2 - textWidth / 2, 70, fontSize, WHITE);
-}
-
-void UIManager::drawLevel(int level) {
-    char text[32];
-    sprintf(text, "Level %d", level);
-    DrawText(text, 550, 35, 14, {255, 255, 100, 255});
+void UIManager::drawMenuBackground() {
+    // Semi-transparent overlay for menu panels
+    DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, {0, 0, 0, 180});
 }
 
 void UIManager::drawMainMenu() {
@@ -197,69 +201,116 @@ void UIManager::drawMainMenu() {
         if (menuAnimation > 1.0f) menuAnimation = 1.0f;
     }
 
-    // Title
+    // Animated title
     const char* title = getText("BLOCK EATER", "方块吞噬者");
     int titleFontSize = 60;
-    int titleWidth = MeasureText(title, titleFontSize);
+    int titleWidth = measureTextWithFont(title, titleFontSize);
+    
+    float bounce = sinf(GetTime() * 3.0f) * 5.0f * alpha;
+    Color titleColor = {255, 
+        static_cast<unsigned char>(200 + 55 * sinf(GetTime() * 3)), 
+        50, 255};
+    drawTextWithFont(title, SCREEN_WIDTH / 2 - titleWidth / 2, 100 + (int)bounce, titleFontSize, titleColor);
 
-    Color titleColor = {255, static_cast<unsigned char>(200 + 55 * sinf(GetTime() * 3)), 50, 255};
-    DrawText(title, SCREEN_WIDTH / 2 - titleWidth / 2, 100, titleFontSize, titleColor);
+    // Menu buttons using raygui with proper layout
+    float buttonWidth = 280.0f;
+    float buttonHeight = 50.0f;
+    float startY = 220.0f;
+    float spacing = 15.0f;
+    float centerX = (float)(SCREEN_WIDTH / 2) - buttonWidth / 2;
 
-    // Menu buttons using raygui
-    float buttonWidth = 280;
-    float buttonHeight = 50;
-    float startY = 220;
-    float spacing = 10;
+    // Button 0: Play Endless
+    if (drawButton(centerX, startY, buttonWidth, buttonHeight, 
+                   getText("PLAY ENDLESS", "无尽模式"))) {
+        mainMenuSelection = 0;
+    }
+    
+    // Button 1: Level Mode
+    if (drawButton(centerX, startY + (buttonHeight + spacing) * 1, buttonWidth, buttonHeight,
+                   getText("LEVEL MODE", "关卡模式"))) {
+        mainMenuSelection = 1;
+    }
+    
+    // Button 2: Time Challenge
+    if (drawButton(centerX, startY + (buttonHeight + spacing) * 2, buttonWidth, buttonHeight,
+                   getText("TIME CHALLENGE", "时间挑战"))) {
+        mainMenuSelection = 2;
+    }
+    
+    // Button 3: Settings
+    if (drawButton(centerX, startY + (buttonHeight + spacing) * 3, buttonWidth, buttonHeight,
+                   getText("SETTINGS", "设置"))) {
+        mainMenuSelection = 3;
+    }
+    
+    // Button 4: Quit
+    if (drawButton(centerX, startY + (buttonHeight + spacing) * 4, buttonWidth, buttonHeight,
+                   getText("QUIT", "退出"))) {
+        mainMenuSelection = 4;
+    }
 
-    // Draw buttons (visual only, click handling in game.cpp)
-    GuiButton((Rectangle){(float)(SCREEN_WIDTH/2) - buttonWidth/2, startY, buttonWidth, buttonHeight},
-              getText("PLAY ENDLESS", "无尽模式"));
-    GuiButton((Rectangle){(float)(SCREEN_WIDTH/2) - buttonWidth/2, startY + (buttonHeight + spacing) * 1, buttonWidth, buttonHeight},
-              getText("LEVEL MODE", "关卡模式"));
-    GuiButton((Rectangle){(float)(SCREEN_WIDTH/2) - buttonWidth/2, startY + (buttonHeight + spacing) * 2, buttonWidth, buttonHeight},
-              getText("TIME CHALLENGE", "时间挑战"));
-    GuiButton((Rectangle){(float)(SCREEN_WIDTH/2) - buttonWidth/2, startY + (buttonHeight + spacing) * 3, buttonWidth, buttonHeight},
-              getText("SETTINGS", "设置"));
-    GuiButton((Rectangle){(float)(SCREEN_WIDTH/2) - buttonWidth/2, startY + (buttonHeight + spacing) * 4, buttonWidth, buttonHeight},
-              getText("QUIT", "退出"));
-
-    // Instructions
+    // Instructions at bottom
     const char* instructions = getText("Touch left side to move", "触摸左半屏移动");
-    int instrWidth = MeasureText(instructions, 14);
-    DrawText(instructions, SCREEN_WIDTH / 2 - instrWidth / 2, SCREEN_HEIGHT - 40, 14, {150, 150, 150, 255});
+    int instrWidth = measureTextWithFont(instructions, 14);
+    drawTextWithFont(instructions, SCREEN_WIDTH / 2 - instrWidth / 2, SCREEN_HEIGHT - 40, 14, {150, 150, 150, 255});
+    
+    // Version info
+    drawTextWithFont("v1.0", 10, SCREEN_HEIGHT - 20, 12, {100, 100, 100, 200});
 }
 
 void UIManager::drawPauseMenu() {
-    // Overlay
-    DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, {0, 0, 0, 180});
+    // Dark overlay
+    drawMenuBackground();
 
-    // Pause text
+    // Pause text with pulse effect
     const char* text = getText("PAUSED", "暂停");
     int fontSize = 50;
-    int textWidth = MeasureText(text, fontSize);
-    DrawText(text, SCREEN_WIDTH / 2 - textWidth / 2, 150, fontSize, WHITE);
+    int textWidth = measureTextWithFont(text, fontSize);
+    float pulse = 1.0f + sinf(GetTime() * 5.0f) * 0.05f;
+    int scaledSize = (int)(fontSize * pulse);
+    int scaledWidth = measureTextWithFont(text, scaledSize);
+    drawTextWithFont(text, SCREEN_WIDTH / 2 - scaledWidth / 2, 150 - (scaledSize - fontSize) / 2, 
+             scaledSize, WHITE);
 
-    // Buttons using raygui
-    int buttonWidth = 250;
-    int buttonHeight = 50;
+    // Pause menu buttons
+    float buttonWidth = 250.0f;
+    float buttonHeight = 50.0f;
+    float centerX = (float)(SCREEN_WIDTH / 2) - buttonWidth / 2;
+    float startY = 280.0f;
+    float spacing = 20.0f;
 
-    GuiButton((Rectangle){(float)(SCREEN_WIDTH / 2 - buttonWidth / 2), 250.0f, (float)buttonWidth, (float)buttonHeight},
-              getText("RESUME", "继续"));
-    GuiButton((Rectangle){(float)(SCREEN_WIDTH / 2 - buttonWidth / 2), 320.0f, (float)buttonWidth, (float)buttonHeight},
-              getText("QUIT TO MENU", "退出到菜单"));
+    // Button 0: Resume
+    if (drawButton(centerX, startY, buttonWidth, buttonHeight,
+                   getText("RESUME", "继续"))) {
+        pauseMenuSelection = 0;
+    }
+    
+    // Button 1: Settings
+    if (drawButton(centerX, startY + buttonHeight + spacing, buttonWidth, buttonHeight,
+                   getText("SETTINGS", "设置"))) {
+        pauseMenuSelection = 1;
+    }
+    
+    // Button 2: Quit to Menu
+    if (drawButton(centerX, startY + (buttonHeight + spacing) * 2, buttonWidth, buttonHeight,
+                   getText("QUIT TO MENU", "退出到菜单"))) {
+        pauseMenuSelection = 2;
+    }
 }
 
 void UIManager::drawGameOverMenu(int score, int level) {
-    // Overlay
+    // Red-tinted overlay
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, {50, 0, 0, 200});
 
-    // Game Over text
+    // Game Over text with shake effect
     const char* text = getText("GAME OVER", "游戏结束");
     int fontSize = 60;
-    int textWidth = MeasureText(text, fontSize);
-    DrawText(text, SCREEN_WIDTH / 2 - textWidth / 2, 100, fontSize, {255, 50, 50, 255});
+    float shake = sinf(GetTime() * 20.0f) * 2.0f;
+    int textWidth = measureTextWithFont(text, fontSize);
+    drawTextWithFont(text, SCREEN_WIDTH / 2 - textWidth / 2 + (int)shake, 100, 
+             fontSize, {255, 50, 50, 255});
 
-    // Score
+    // Score display
     char scoreText[64];
     if (language == Language::CHINESE) {
         sprintf(scoreText, "最终得分: %d", score);
@@ -267,8 +318,8 @@ void UIManager::drawGameOverMenu(int score, int level) {
         sprintf(scoreText, "Final Score: %d", score);
     }
     int scoreFontSize = 30;
-    int scoreWidth = MeasureText(scoreText, scoreFontSize);
-    DrawText(scoreText, SCREEN_WIDTH / 2 - scoreWidth / 2, 200, scoreFontSize, WHITE);
+    int scoreWidth = measureTextWithFont(scoreText, scoreFontSize);
+    drawTextWithFont(scoreText, SCREEN_WIDTH / 2 - scoreWidth / 2, 200, scoreFontSize, WHITE);
 
     // Level reached
     char levelText[64];
@@ -277,116 +328,279 @@ void UIManager::drawGameOverMenu(int score, int level) {
     } else {
         sprintf(levelText, "Level Reached: %d", level);
     }
-    int levelWidth = MeasureText(levelText, scoreFontSize);
-    DrawText(levelText, SCREEN_WIDTH / 2 - levelWidth / 2, 250, scoreFontSize, {255, 200, 50, 255});
+    int levelWidth = measureTextWithFont(levelText, scoreFontSize);
+    drawTextWithFont(levelText, SCREEN_WIDTH / 2 - levelWidth / 2, 250, scoreFontSize, {255, 200, 50, 255});
 
-    // Buttons using raygui
-    int buttonWidth = 250;
-    int buttonHeight = 50;
+    // Game Over menu buttons
+    float buttonWidth = 250.0f;
+    float buttonHeight = 50.0f;
+    float centerX = (float)(SCREEN_WIDTH / 2) - buttonWidth / 2;
+    float startY = 350.0f;
+    float spacing = 20.0f;
 
-    GuiButton((Rectangle){(float)(SCREEN_WIDTH / 2 - buttonWidth / 2), 350.0f, (float)buttonWidth, (float)buttonHeight},
-              getText("TRY AGAIN", "再试一次"));
-    GuiButton((Rectangle){(float)(SCREEN_WIDTH / 2 - buttonWidth / 2), 420.0f, (float)buttonWidth, (float)buttonHeight},
-              getText("MAIN MENU", "主菜单"));
+    // Button 0: Try Again
+    if (drawButton(centerX, startY, buttonWidth, buttonHeight,
+                   getText("TRY AGAIN", "再试一次"))) {
+        gameOverSelection = 0;
+    }
+    
+    // Button 1: Main Menu
+    if (drawButton(centerX, startY + buttonHeight + spacing, buttonWidth, buttonHeight,
+                   getText("MAIN MENU", "主菜单"))) {
+        gameOverSelection = 1;
+    }
 }
 
 void UIManager::drawLevelSelect() {
+    // Title
     const char* title = getText("SELECT LEVEL", "选择关卡");
     int fontSize = 40;
-    int textWidth = MeasureText(title, fontSize);
-    DrawText(title, SCREEN_WIDTH / 2 - textWidth / 2, 50, fontSize, currentTheme->text);
+    int textWidth = measureTextWithFont(title, fontSize);
+    drawTextWithFont(title, SCREEN_WIDTH / 2 - textWidth / 2, 50, fontSize, currentTheme->text);
 
-    // Level buttons (10 levels in 2 rows) using raygui
-    int buttonSize = 80;
-    int startX = (SCREEN_WIDTH - 5 * (buttonSize + 20)) / 2 + 10;
-    int startY = 150;
+    // Level buttons grid (10 levels in 2 rows)
+    float buttonSize = 80.0f;
+    float spacing = 20.0f;
+    float totalWidth = 5 * buttonSize + 4 * spacing;
+    float startX = ((float)SCREEN_WIDTH - totalWidth) / 2;
+    float startY = 150.0f;
 
     for (int i = 0; i < 10; i++) {
         int row = i / 5;
         int col = i % 5;
-        int x = startX + col * (buttonSize + 20);
-        int y = startY + row * (buttonSize + 20);
+        float x = startX + col * (buttonSize + spacing);
+        float y = startY + row * (buttonSize + spacing);
 
         char levelText[16];
         sprintf(levelText, "%d", i + 1);
 
-        GuiButton((Rectangle){(float)x, (float)y, (float)buttonSize, (float)buttonSize}, levelText);
+        if (drawButton(x, y, buttonSize, buttonSize, levelText)) {
+            selectedLevel = i + 1;
+            levelSelectSelection = 0;  // Confirm selection
+        }
     }
 
     // Back button
-    GuiButton((Rectangle){(float)(SCREEN_WIDTH / 2 - 100), 500.0f, 200.0f, 50.0f}, getText("BACK", "返回"));
+    float backButtonWidth = 200.0f;
+    float backButtonHeight = 50.0f;
+    if (drawButton((float)(SCREEN_WIDTH / 2) - backButtonWidth / 2, 450.0f, 
+                   backButtonWidth, backButtonHeight, getText("BACK", "返回"))) {
+        levelSelectSelection = 1;  // Back
+    }
 }
 
 void UIManager::drawSettings() {
+    // Title
     const char* title = getText("SETTINGS", "设置");
     int fontSize = 40;
-    int textWidth = MeasureText(title, fontSize);
-    DrawText(title, SCREEN_WIDTH / 2 - textWidth / 2, 50, fontSize, currentTheme->text);
+    int textWidth = measureTextWithFont(title, fontSize);
+    drawTextWithFont(title, SCREEN_WIDTH / 2 - textWidth / 2, 50, fontSize, currentTheme->text);
+
+    float startY = 140.0f;
+    float spacing = 70.0f;
+    float labelX = 200.0f;
+    float valueX = 500.0f;
+    float buttonWidth = 200.0f;
+    float buttonHeight = 40.0f;
 
     // Language setting
-    DrawText(getText("Language:", "语言:"), 200, 135, 20, currentTheme->text);
+    drawTextWithFont(getText("Language:", "语言:"), (int)labelX, (int)(startY + 15), 20, currentTheme->text);
     const char* langText = (language == Language::ENGLISH) ? "English" : "中文";
-    GuiButton((Rectangle){500.0f, 120.0f, 200.0f, 40.0f}, langText);
-
-    // Theme setting
-    DrawText(getText("Theme:", "主题:"), 200, 205, 20, currentTheme->text);
-    GuiButton((Rectangle){500.0f, 190.0f, 200.0f, 40.0f}, currentTheme->name);
-    GuiButton((Rectangle){720.0f, 190.0f, 80.0f, 40.0f}, getText(">", ">"));
-
-    // Control mode setting
-    DrawText(getText("Control Mode:", "控制模式:"), 200, 275, 20, currentTheme->text);
-    GuiButton((Rectangle){500.0f, 260.0f, 200.0f, 40.0f}, getText("Virtual Joystick", "虚拟摇杆"));
-    GuiButton((Rectangle){720.0f, 260.0f, 200.0f, 40.0f}, getText("Touch Follow", "触摸跟随"));
-
-    // Volume settings (visual only, using DrawRectangle)
-    DrawText(getText("Master Volume:", "主音量:"), 200, 355, 20, currentTheme->text);
-    DrawRectangle(500, 350, 300, 20, {100, 100, 100, 255});
-    DrawRectangle(500, 350, 200, 20, {50, 200, 50, 255});
-
-    DrawText(getText("SFX Volume:", "音效音量:"), 200, 405, 20, currentTheme->text);
-    DrawRectangle(500, 400, 300, 20, {100, 100, 100, 255});
-    DrawRectangle(500, 400, 250, 20, {50, 150, 255, 255});
-
-    DrawText(getText("Music Volume:", "音乐音量:"), 200, 455, 20, currentTheme->text);
-    DrawRectangle(500, 450, 300, 20, {100, 100, 100, 255});
-    DrawRectangle(500, 450, 150, 20, {255, 150, 50, 255});
-
-    // Back button
-    GuiButton((Rectangle){(float)(SCREEN_WIDTH / 2 - 100), 530.0f, 200.0f, 50.0f}, getText("BACK", "返回"));
-}
-
-bool UIManager::isButtonClicked(int x, int y, int width, int height) {
-    Vector2 mouse = GetMousePosition();
-    Vector2 touch = {0, 0};
-
-    if (GetTouchPointCount() > 0) {
-        touch = GetTouchPosition(0);
+    if (drawButton(valueX, startY, buttonWidth, buttonHeight, langText)) {
+        settingsSelection = 0;  // Toggle language
     }
 
-    return (mouse.x >= x && mouse.x <= x + width && mouse.y >= y && mouse.y <= y + height) ||
-           (touch.x >= x && touch.x <= x + width && touch.y >= y && touch.y <= y + height);
+    // Theme setting
+    float themeY = startY + spacing;
+    drawTextWithFont(getText("Theme:", "主题:"), (int)labelX, (int)(themeY + 15), 20, currentTheme->text);
+    
+    // Theme name button
+    if (drawButton(valueX, themeY, buttonWidth, buttonHeight, currentTheme->name)) {
+        settingsSelection = 1;  // Next theme
+    }
+    
+    // Theme cycle button
+    if (drawButton(valueX + buttonWidth + 20, themeY, 80.0f, buttonHeight, ">")) {
+        cycleTheme();
+    }
+
+    // Control mode setting
+    float controlY = startY + spacing * 2;
+    drawTextWithFont(getText("Control:", "控制:"), (int)labelX, (int)(controlY + 15), 20, currentTheme->text);
+    
+    const char* controlText = getText("Joystick", "摇杆");
+    if (drawButton(valueX, controlY, buttonWidth, buttonHeight, controlText)) {
+        settingsSelection = 2;  // Toggle control mode
+    }
+
+    // Volume sliders (visual)
+    float volumeY = startY + spacing * 3;
+    drawTextWithFont(getText("Volume:", "音量:"), (int)labelX, (int)(volumeY + 15), 20, currentTheme->text);
+    
+    // Volume bar background
+    DrawRectangle((int)valueX, (int)(volumeY + 10), 300, 20, {100, 100, 100, 255});
+    // Volume level
+    DrawRectangle((int)valueX, (int)(volumeY + 10), 200, 20, {50, 200, 50, 255});
+
+    // Back button at bottom
+    float backY = 500.0f;
+    if (drawButton((float)(SCREEN_WIDTH / 2) - 100, backY, 200.0f, 50.0f, 
+                   getText("BACK", "返回"))) {
+        settingsSelection = 3;  // Back
+    }
 }
 
-void UIManager::drawButton(int x, int y, int width, int height, const char* text, bool hovered) {
-    drawPixelButton(x, y, width, height, text, hovered, false);
+void UIManager::drawHUD(const Player* player) {
+    if (!player) return;
+
+    // Top bar background with transparency
+    drawPixelRect(0, 0, SCREEN_WIDTH, 60, backgroundColor);
+
+    // Health bar
+    drawHealthBar(20, 10, 200, 20, player->getHealth(), player->getMaxHealth(), {200, 50, 50, 255});
+
+    // Energy bar
+    drawEnergyBar(20, 35, 200, 15, player->getEnergy(), player->getMaxEnergy());
+
+    // Experience bar
+    drawExpBar(240, 10, 300, 20, 0, 100, {50, 200, 100, 255});
+}
+
+void UIManager::drawHealthBar(float x, float y, float width, float height, int current, int max, Color color) {
+    // Background
+    DrawRectangle((int)x, (int)y, (int)width, (int)height, {50, 50, 50, 200});
+    
+    // Health fill
+    float percentage = (float)current / (float)max;
+    int fillWidth = (int)(width * percentage);
+    DrawRectangle((int)x, (int)y, fillWidth, (int)height, color);
+    
+    // Border
+    DrawRectangleLines((int)x, (int)y, (int)width, (int)height, {200, 200, 200, 100});
+    
+    // Text
+    char text[32];
+    sprintf(text, "%d/%d", current, max);
+    int textWidth = measureTextWithFont(text, 12);
+    drawTextWithFont(text, (int)(x + width / 2 - textWidth / 2), (int)(y + 4), 12, WHITE);
+}
+
+void UIManager::drawEnergyBar(float x, float y, float width, float height, float current, float max) {
+    // Background
+    DrawRectangle((int)x, (int)y, (int)width, (int)height, {50, 50, 50, 200});
+    
+    // Energy fill (blue)
+    float percentage = current / max;
+    int fillWidth = (int)(width * percentage);
+    DrawRectangle((int)x, (int)y, fillWidth, (int)height, {50, 150, 255, 255});
+    
+    // Border
+    DrawRectangleLines((int)x, (int)y, (int)width, (int)height, {200, 200, 200, 100});
+}
+
+void UIManager::drawExpBar(float x, float y, float width, float height, int current, int max, Color color) {
+    // Background
+    DrawRectangle((int)x, (int)y, (int)width, (int)height, {50, 50, 50, 200});
+    
+    // XP fill
+    float percentage = (float)current / (float)max;
+    int fillWidth = (int)(width * percentage);
+    DrawRectangle((int)x, (int)y, fillWidth, (int)height, color);
+    
+    // Border
+    DrawRectangleLines((int)x, (int)y, (int)width, (int)height, {200, 200, 200, 100});
+    
+    // Label
+    const char* label = getText("XP", "经验");
+    drawTextWithFont(label, (int)x - 30, (int)y + 2, 14, WHITE);
+}
+
+void UIManager::drawScore(int score) {
+    char text[32];
+    sprintf(text, "Score: %d", score);
+    drawTextWithFont(text, 20, 70, 20, WHITE);
+}
+
+void UIManager::drawTimer(float time) {
+    char text[32];
+    int minutes = (int)(time / 60);
+    int seconds = (int)(time) % 60;
+    sprintf(text, "%02d:%02d", minutes, seconds);
+    
+    int textWidth = measureTextWithFont(text, 30);
+    
+    // Warning color for low time
+    Color timeColor = (time < 30.0f) ? RED : WHITE;
+    if (time < 30.0f && (int)(time * 2) % 2 == 0) {
+        timeColor = {255, 100, 100, 255};  // Blink effect
+    }
+    
+    drawTextWithFont(text, SCREEN_WIDTH / 2 - textWidth / 2, 20, 30, timeColor);
+}
+
+void UIManager::drawLevel(int level) {
+    char text[32];
+    sprintf(text, "Lv.%d", level);
+    drawTextWithFont(text, SCREEN_WIDTH - 80, 20, 20, {255, 255, 100, 255});
+}
+
+void UIManager::drawMiniMap() {
+    // Mini-map background
+    int mapSize = 120;
+    int mapX = SCREEN_WIDTH - mapSize - 20;
+    int mapY = SCREEN_HEIGHT - mapSize - 20;
+    
+    DrawRectangle(mapX, mapY, mapSize, mapSize, {0, 0, 0, 150});
+    DrawRectangleLines(mapX, mapY, mapSize, mapSize, {200, 200, 200, 100});
+    
+    // Player dot (center of minimap)
+    int dotX = mapX + mapSize / 2;
+    int dotY = mapY + mapSize / 2;
+    DrawCircle(dotX, dotY, 4, GREEN);
+}
+
+const char* UIManager::getText(const char* english, const char* chinese) {
+    return (language == Language::CHINESE) ? chinese : english;
+}
+
+// Helper function to draw text with custom font support
+void UIManager::drawTextWithFont(const char* text, int x, int y, int fontSize, Color color) {
+    if (useCustomFont && mainFont != nullptr) {
+        // Calculate font scale
+        float scale = (float)fontSize / mainFont->baseSize;
+        Vector2 position = {(float)x, (float)y};
+        DrawTextEx(*mainFont, text, position, (float)fontSize, 1.0f, color);
+    } else {
+        // Fallback to default font
+        DrawText(text, x, y, fontSize, color);
+    }
+}
+
+// Helper function to measure text width with custom font
+int UIManager::measureTextWithFont(const char* text, int fontSize) {
+    if (useCustomFont && mainFont != nullptr) {
+        Vector2 size = MeasureTextEx(*mainFont, text, (float)fontSize, 1.0f);
+        return (int)size.x;
+    } else {
+        return MeasureText(text, fontSize);
+    }
 }
 
 void UIManager::drawPixelButton(int x, int y, int width, int height, const char* text, bool hovered, bool pressed) {
-    Color bgColor = hovered ? Color{80, 120, 180, 255} : Color{60, 80, 120, 255};
-    if (pressed) bgColor = Color{40, 60, 100, 255};
-
-    drawPixelRect(x, y, width, height, bgColor);
-
-    // Pixel border
-    drawPixelRect(x, y, width, height, {150, 180, 220, 255}, false);
-
-    // Highlight
-    drawPixelRect(x + 2, y + 2, width - 4, 3, {200, 220, 255, 150});
-
-    // Text
-    int fontSize = 20;
-    int textWidth = MeasureText(text, fontSize);
-    DrawText(text, x + (width - textWidth) / 2, y + (height - fontSize) / 2, fontSize, WHITE);
+    Color bgColor = hovered ? secondaryColor : primaryColor;
+    if (pressed) bgColor = accentColor;
+    
+    // Draw button background
+    DrawRectangle(x, y, width, height, bgColor);
+    
+    // Draw border
+    DrawRectangleLines(x, y, width, height, {255, 255, 255, 200});
+    
+    // Draw text
+    int textWidth = measureTextWithFont(text, 20);
+    int textX = x + (width - textWidth) / 2;
+    int textY = y + (height - 20) / 2;
+    drawTextWithFont(text, textX, textY, 20, WHITE);
 }
 
 void UIManager::drawPixelRect(int x, int y, int width, int height, Color color, bool filled) {
@@ -398,21 +612,7 @@ void UIManager::drawPixelRect(int x, int y, int width, int height, Color color, 
 }
 
 void UIManager::drawPixelText(const char* text, int x, int y, int fontSize, Color color) {
-    DrawText(text, x, y, fontSize, color);
-}
-
-const char* UIManager::getText(const char* english, const char* chinese) {
-    return (language == Language::CHINESE) ? chinese : english;
-}
-
-void UIManager::cycleTheme() {
-    currentThemeIndex = (currentThemeIndex + 1) % NUM_THEMES;
-    currentTheme = const_cast<Theme*>(&themes[currentThemeIndex]);
-    // Update old color variables for compatibility
-    primaryColor = currentTheme->primary;
-    secondaryColor = currentTheme->secondary;
-    accentColor = currentTheme->accent;
-    backgroundColor = currentTheme->background;
+    drawTextWithFont(text, x, y, fontSize, color);
 }
 
 } // namespace BlockEater

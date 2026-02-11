@@ -23,6 +23,7 @@ Game::Game()
     , assets(nullptr)
     , camera(nullptr)
     , state(GameState::MENU)
+    , previousState(GameState::MENU)
     , mode(GameMode::ENDLESS)
     , controlMode(ControlMode::VIRTUAL_JOYSTICK)
     , score(0)
@@ -48,6 +49,8 @@ void Game::init() {
     controls->init();
 
     ui = new UIManager();
+    // Initialize UI with fonts (if loaded)
+    ui->init(&assets->GetPixelFont(), &assets->GetSmallFont());
 
     particles = new ParticleSystem();
 
@@ -88,7 +91,7 @@ void Game::update() {
             updateLevelSelect();
             break;
         case GameState::SETTINGS:
-            updatePaused();  // Similar to pause
+            updateSettings();
             break;
     }
 
@@ -146,37 +149,34 @@ void Game::shutdown() {
 }
 
 void Game::updateMenu() {
-    // Check for menu button clicks
-    if (GetTouchPointCount() > 0 || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        Vector2 pos = GetTouchPointCount() > 0 ? GetTouchPosition(0) : GetMousePosition();
-        int buttonWidth = 300;
-        int buttonHeight = 60;
-        int startY = 250;
-        int gap = 80;
-
-        if (pos.x >= SCREEN_WIDTH / 2 - buttonWidth / 2 && pos.x <= SCREEN_WIDTH / 2 + buttonWidth / 2) {
-            if (pos.y >= startY && pos.y <= startY + buttonHeight) {
-                // Play Endless
+    // Check for menu button clicks via raygui
+    int selection = ui->getMainMenuSelection();
+    
+    if (selection >= 0) {
+        audio->playButtonClickSound();
+        
+        switch (selection) {
+            case 0:  // Play Endless
                 startGame(GameMode::ENDLESS);
-            } else if (pos.y >= startY + gap && pos.y <= startY + gap + buttonHeight) {
-                // Level Mode
+                break;
+            case 1:  // Level Mode
                 state = GameState::LEVEL_SELECT;
-                audio->playButtonClickSound();
                 ui->resetTransition();
-            } else if (pos.y >= startY + gap * 2 && pos.y <= startY + gap * 2 + buttonHeight) {
-                // Time Challenge
+                break;
+            case 2:  // Time Challenge
                 startGame(GameMode::TIME_CHALLENGE);
-            } else if (pos.y >= startY + gap * 3 && pos.y <= startY + gap * 3 + buttonHeight) {
-                // Settings
+                break;
+            case 3:  // Settings
                 state = GameState::SETTINGS;
-                audio->playButtonClickSound();
                 ui->resetTransition();
-            } else if (pos.y >= startY + gap * 4 && pos.y <= startY + gap * 4 + buttonHeight) {
-                // Quit - exit the game
-                audio->playButtonClickSound();
-                return;  // This will exit the run() loop
-            }
+                break;
+            case 4:  // Quit
+                // Exit the game loop
+                CloseWindow();
+                break;
         }
+        
+        ui->clearSelections();
     }
 }
 
@@ -225,104 +225,108 @@ void Game::updatePlaying() {
 }
 
 void Game::updatePaused() {
-    // Check for resume/quit buttons
-    if (GetTouchPointCount() > 0 || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        Vector2 pos = GetTouchPointCount() > 0 ? GetTouchPosition(0) : GetMousePosition();
-        int buttonWidth = 250;
-        int buttonHeight = 50;
-
-        if (pos.x >= SCREEN_WIDTH / 2 - buttonWidth / 2 && pos.x <= SCREEN_WIDTH / 2 + buttonWidth / 2) {
-            if (pos.y >= 250 && pos.y <= 250 + buttonHeight) {
-                // Resume (only when actually paused)
-                if (state == GameState::PAUSED) {
+    // Handle Pause Menu
+    if (state == GameState::PAUSED) {
+        int selection = ui->getPauseMenuSelection();
+        
+        if (selection >= 0) {
+            audio->playButtonClickSound();
+            
+            switch (selection) {
+                case 0:  // Resume
                     state = GameState::PLAYING;
-                    audio->playButtonClickSound();
-                }
-            } else if (pos.y >= 320 && pos.y <= 320 + buttonHeight) {
-                // Quit to menu
-                state = GameState::MENU;
-                audio->playButtonClickSound();
-                resetGame();
-                ui->resetTransition();
+                    break;
+                case 1:  // Settings (from pause)
+                    previousState = state;
+                    state = GameState::SETTINGS;
+                    ui->resetTransition();
+                    break;
+                case 2:  // Quit to menu
+                    state = GameState::MENU;
+                    resetGame();
+                    ui->resetTransition();
+                    break;
             }
+            
+            ui->clearSelections();
         }
+    }
+}
 
-        // Handle Settings specific buttons
-        if (state == GameState::SETTINGS) {
-            // Language button (at x=500, y=120)
-            if (pos.x >= 500 && pos.x <= 700 && pos.y >= 120 && pos.y <= 170) {
+    // Store current state before switching to settings
+    if (state != GameState::SETTINGS) {
+        previousState = state;
+    }
+
+void Game::updateSettings() {
+    int selection = ui->getSettingsSelection();
+    
+    if (selection >= 0) {
+        audio->playButtonClickSound();
+        
+        switch (selection) {
+            case 0:  // Toggle Language
                 ui->setLanguage(ui->getLanguage() == Language::ENGLISH ? Language::CHINESE : Language::ENGLISH);
-                audio->playButtonClickSound();
-            }
-            // Theme next button (at x=720, y=190, width=100)
-            if (pos.x >= 720 && pos.x <= 820 && pos.y >= 190 && pos.y <= 240) {
+                break;
+            case 1:  // Next Theme
                 ui->cycleTheme();
-                audio->playButtonClickSound();
-            }
-            // Back button (at y=550)
-            if (pos.x >= SCREEN_WIDTH / 2 - 100 && pos.x <= SCREEN_WIDTH / 2 + 100 &&
-                pos.y >= 550 && pos.y <= 600) {
-                state = GameState::MENU;
-                audio->playButtonClickSound();
+                break;
+            case 2:  // Toggle Control Mode
+                controlMode = (controlMode == ControlMode::VIRTUAL_JOYSTICK) 
+                    ? ControlMode::TOUCH_FOLLOW 
+                    : ControlMode::VIRTUAL_JOYSTICK;
+                break;
+            case 3:  // Back
+                state = previousState;
                 ui->resetTransition();
-            }
+                break;
         }
+        
+        ui->clearSelections();
     }
 }
 
 void Game::updateGameOver() {
-    // Check for try again/main menu buttons
-    if (GetTouchPointCount() > 0 || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        Vector2 pos = GetTouchPointCount() > 0 ? GetTouchPosition(0) : GetMousePosition();
-        int buttonWidth = 250;
-        int buttonHeight = 50;
-
-        if (pos.x >= SCREEN_WIDTH / 2 - buttonWidth / 2 && pos.x <= SCREEN_WIDTH / 2 + buttonWidth / 2) {
-            if (pos.y >= 350 && pos.y <= 350 + buttonHeight) {
-                // Try Again
+    // Check for try again/main menu buttons via raygui
+    int selection = ui->getGameOverSelection();
+    
+    if (selection >= 0) {
+        audio->playButtonClickSound();
+        
+        switch (selection) {
+            case 0:  // Try Again
                 startGame(mode);
-            } else if (pos.y >= 420 && pos.y <= 420 + buttonHeight) {
-                // Main Menu
+                break;
+            case 1:  // Main Menu
                 state = GameState::MENU;
-                audio->playButtonClickSound();
                 resetGame();
                 ui->resetTransition();
-            }
+                break;
         }
+        
+        ui->clearSelections();
     }
 }
 
 void Game::updateLevelSelect() {
-    // Check for level selection
-    if (GetTouchPointCount() > 0 || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        Vector2 pos = GetTouchPointCount() > 0 ? GetTouchPosition(0) : GetMousePosition();
-
-        // Check back button area
-        if (pos.x >= SCREEN_WIDTH / 2 - 100 && pos.x <= SCREEN_WIDTH / 2 + 100 &&
-            pos.y >= 500 && pos.y <= 550) {
+    // Check for level selection via raygui
+    int selection = ui->getLevelSelectSelection();
+    int selectedLevel = ui->getSelectedLevel();
+    
+    if (selection >= 0 || selectedLevel >= 0) {
+        audio->playButtonClickSound();
+        
+        if (selectedLevel >= 0) {
+            // Level selected
+            currentLevel = selectedLevel;
+            startGame(GameMode::LEVEL);
+        } else if (selection == 1) {
+            // Back button
             state = GameState::MENU;
-            audio->playButtonClickSound();
             ui->resetTransition();
-            return;
         }
-
-        // Check level buttons
-        int buttonSize = 80;
-        int startX = (SCREEN_WIDTH - 5 * (buttonSize + 20)) / 2 + 10;
-        int startY = 150;
-
-        for (int i = 0; i < 10; i++) {
-            int row = i / 5;
-            int col = i % 5;
-            int x = startX + col * (buttonSize + 20);
-            int y = startY + row * (buttonSize + 20);
-
-            if (pos.x >= x && pos.x <= x + buttonSize && pos.y >= y && pos.y <= y + buttonSize) {
-                currentLevel = i + 1;
-                startGame(GameMode::LEVEL);
-                return;
-            }
-        }
+        
+        ui->clearSelections();
     }
 }
 

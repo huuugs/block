@@ -138,24 +138,53 @@ Texture2D AssetManager::GeneratePixelBackground() {
 }
 
 bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
+    // Try loading from the given path first
     if (FileExists(fontPath)) {
         pixelFont = LoadFontEx(fontPath, fontSize, 0, 0);
         if (pixelFont.texture.id != 0) {
-            // Generate mipmap for better quality
             GenTextureMipmaps(&pixelFont.texture);
             
-            // Create a smaller version for UI elements
-            smallFont = LoadFontEx(fontPath, fontSize * 0.75, 0, 0);
+            smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), 0, 0);
             if (smallFont.texture.id != 0) {
                 GenTextureMipmaps(&smallFont.texture);
             } else {
-                smallFont = pixelFont;  // Fallback to main font
+                smallFont = pixelFont;
             }
             
             TraceLog(LOG_INFO, TextFormat("Font loaded from %s", fontPath));
             return true;
         }
     }
+    
+    // On Android, try assets path
+    #if defined(PLATFORM_ANDROID)
+    const char* androidPaths[] = {
+        "fonts/vonwaon_pixel_12px.ttf",
+        "fonts/SourceHanSansCN-Regular.otf",
+        "vonwaon_pixel_12px.ttf",
+        "SourceHanSansCN-Regular.otf"
+    };
+    
+    for (const char* path : androidPaths) {
+        if (FileExists(path)) {
+            pixelFont = LoadFontEx(path, fontSize, 0, 0);
+            if (pixelFont.texture.id != 0) {
+                GenTextureMipmaps(&pixelFont.texture);
+                
+                smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), 0, 0);
+                if (smallFont.texture.id != 0) {
+                    GenTextureMipmaps(&smallFont.texture);
+                } else {
+                    smallFont = pixelFont;
+                }
+                
+                TraceLog(LOG_INFO, TextFormat("Font loaded from Android assets: %s", path));
+                return true;
+            }
+        }
+    }
+    #endif
+    
     return false;
 }
 

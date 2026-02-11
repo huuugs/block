@@ -7,9 +7,15 @@ on:
     branches: [ main, master ]
   workflow_dispatch:
 
+env:
+  BUILD_TYPE: Debug
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
 
     steps:
     - name: Checkout code
@@ -100,20 +106,91 @@ jobs:
         fi
       shell: bash
 
-    - name: Upload APK
+    - name: Get build info
+      id: build_info
+      run: |
+        echo "timestamp=$(date -u +%Y%m%d_%H%M%S)" >> $GITHUB_OUTPUT
+        echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        echo "commit_msg=$(git log -1 --pretty=%s)" >> $GITHUB_OUTPUT
+        ls -lh app/build/outputs/apk/debug/app-debug.apk
+
+    - name: Rename APK with version
+      run: |
+        cp app/build/outputs/apk/debug/app-debug.apk "block-eater-${{ steps.build_info.outputs.short_sha }}-${{ steps.build_info.outputs.timestamp }}.apk"
+        echo "APK renamed to: block-eater-${{ steps.build_info.outputs.short_sha }}-${{ steps.build_info.outputs.timestamp }}.apk"
+
+    # Upload APK as artifact (always available in Actions summary)
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       if: success()
       with:
-        name: block-eater-apk
-        path: app/build/outputs/apk/debug/app-debug.apk
+        name: block-eater-apk-${{ steps.build_info.outputs.short_sha }}
+        path: block-eater-*.apk
+        retention-days: 30
+
+    # Create Release for easy download
+    - name: Create Release
+      if: github.ref == 'refs/heads/main' && success()
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: build-${{ steps.build_info.outputs.timestamp }}-${{ steps.build_info.outputs.short_sha }}
+        name: Block Eater Build ${{ steps.build_info.outputs.timestamp }}
+        body: |
+          ## Block Eater - Latest Build
+          
+          **Commit:** ${{ github.sha }}
+          **Message:** ${{ steps.build_info.outputs.commit_msg }}
+          **Build Time:** ${{ steps.build_info.outputs.timestamp }}
+          
+          ### 下载安装包
+          点击下方 Assets 中的 APK 文件下载安装。
+          
+          ### 安装说明
+          1. 下载 APK 文件
+          2. 在 Android 设备上允许安装未知来源应用
+          3. 安装并享受游戏！
+          
+          ### 功能特性
+          - 三种游戏模式：无尽模式、关卡模式、时间挑战
+          - 虚拟摇杆和触摸跟随两种控制方式
+          - 多种主题切换
+          - 中文/英文双语支持
+        files: |
+          block-eater-*.apk
+        draft: false
+        prerelease: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Upload build log on failure
       uses: actions/upload-artifact@v4
       if: failure()
       with:
-        name: build-logs
+        name: build-logs-${{ steps.build_info.outputs.short_sha }}
         path: |
           build-output.log
           app/build/outputs/logs/
           app/.cxx/
           build/
+        retention-days: 7
+
+    # Add job summary for quick status view
+    - name: Add Job Summary
+      if: success()
+      run: |
+        echo "## ✅ Build Successful!" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📱 APK Download" >> $GITHUB_STEP_SUMMARY
+        echo "- **Artifact:** block-eater-apk-${{ steps.build_info.outputs.short_sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Release:** [View Release](https://github.com/${{ github.repository }}/releases/tag/build-${{ steps.build_info.outputs.timestamp }}-${{ steps.build_info.outputs.short_sha }})" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📋 Build Info" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit:** \`${{ steps.build_info.outputs.short_sha }}\`" >> $GITHUB_STEP_SUMMARY
+        echo "- **Time:** ${{ steps.build_info.outputs.timestamp }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Message:** ${{ steps.build_info.outputs.commit_msg }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🎮 游戏特性" >> $GITHUB_STEP_SUMMARY
+        echo "- 无尽模式、关卡模式、时间挑战" >> $GITHUB_STEP_SUMMARY
+        echo "- 虚拟摇杆 / 触摸跟随控制" >> $GITHUB_STEP_SUMMARY
+        echo "- 多种主题切换" >> $GITHUB_STEP_SUMMARY
+        echo "- 中文/英文双语支持" >> $GITHUB_STEP_SUMMARY
