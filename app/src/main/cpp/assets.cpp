@@ -1,5 +1,6 @@
 #include "assets.h"
 #include <cmath>
+#include <cstdlib>
 
 namespace BlockEater {
 
@@ -143,30 +144,45 @@ Texture2D AssetManager::GeneratePixelBackground() {
 }
 
 bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
+    // Define codepoints array for Chinese character support
+    // Includes: ASCII (32-126), CJK Unified Ideographs (0x4E00-0x9FFF), and common symbols
+    static int* chineseCodepoints = nullptr;
+    static int codepointCount = 0;
+
+    // Initialize codepoints array on first call
+    if (chineseCodepoints == nullptr) {
+        // ASCII range: 32-126 (95 characters)
+        // CJK Unified Ideographs: 0x4E00-0x9FFF (20992 characters)
+        codepointCount = 95 + 20992;
+        chineseCodepoints = (int*)malloc(codepointCount * sizeof(int));
+
+        int idx = 0;
+        // Add ASCII characters (32-126)
+        for (int i = 32; i <= 126; i++) {
+            chineseCodepoints[idx++] = i;
+        }
+        // Add CJK Unified Ideographs (0x4E00-0x9FFF)
+        for (int i = 0x4E00; i <= 0x9FFF; i++) {
+            chineseCodepoints[idx++] = i;
+        }
+    }
+
     // Try loading from the given path first
     if (FileExists(fontPath)) {
-        // Get all codepoints from the font for full character support
-        int glyphCount = 0;
-        int *codepoints = GetCodepoints(fontPath, &glyphCount);
+        // Load font with Chinese character support
+        pixelFont = LoadFontEx(fontPath, fontSize, chineseCodepoints, codepointCount);
+        if (pixelFont.texture.id != 0) {
+            GenTextureMipmaps(&pixelFont.texture);
 
-        if (codepoints != nullptr && glyphCount > 0) {
-            // Load font with all available characters
-            pixelFont = LoadFontEx(fontPath, fontSize, glyphCount, codepoints);
-            if (pixelFont.texture.id != 0) {
-                GenTextureMipmaps(&pixelFont.texture);
-
-                smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), glyphCount, codepoints);
-                if (smallFont.texture.id != 0) {
-                    GenTextureMipmaps(&smallFont.texture);
-                } else {
-                    smallFont = pixelFont;
-                }
-
-                TraceLog(LOG_INFO, TextFormat("Font loaded from %s with %d glyphs", fontPath, glyphCount));
-                free(codepoints);
-                return true;
+            smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
+            if (smallFont.texture.id != 0) {
+                GenTextureMipmaps(&smallFont.texture);
+            } else {
+                smallFont = pixelFont;
             }
-            free(codepoints);
+
+            TraceLog(LOG_INFO, TextFormat("Font loaded from %s with %d codepoints (including Chinese)", fontPath, codepointCount));
+            return true;
         }
     }
 
@@ -183,28 +199,20 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
 
     for (const char* path : androidPaths) {
         if (FileExists(path)) {
-            // Get all codepoints from the font for full character support
-            int glyphCount = 0;
-            int *codepoints = GetCodepoints(path, &glyphCount);
+            // Load font with Chinese character support
+            pixelFont = LoadFontEx(path, fontSize, chineseCodepoints, codepointCount);
+            if (pixelFont.texture.id != 0) {
+                GenTextureMipmaps(&pixelFont.texture);
 
-            if (codepoints != nullptr && glyphCount > 0) {
-                // Load font with all available characters
-                pixelFont = LoadFontEx(path, fontSize, glyphCount, codepoints);
-                if (pixelFont.texture.id != 0) {
-                    GenTextureMipmaps(&pixelFont.texture);
-
-                    smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), glyphCount, codepoints);
-                    if (smallFont.texture.id != 0) {
-                        GenTextureMipmaps(&smallFont.texture);
-                    } else {
-                        smallFont = pixelFont;
-                    }
-
-                    TraceLog(LOG_INFO, TextFormat("Font loaded from Android assets: %s with %d glyphs", path, glyphCount));
-                    free(codepoints);
-                    return true;
+                smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
+                if (smallFont.texture.id != 0) {
+                    GenTextureMipmaps(&smallFont.texture);
+                } else {
+                    smallFont = pixelFont;
                 }
-                free(codepoints);
+
+                TraceLog(LOG_INFO, TextFormat("Font loaded from Android assets: %s with %d codepoints (including Chinese)", path, codepointCount));
+                return true;
             }
         }
     }
