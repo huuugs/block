@@ -17,6 +17,9 @@ include_directories(
     ${RAYLIB_INCLUDE_DIR}/external
 )
 
+# Include raygui (header-only library)
+include_directories(${CMAKE_SOURCE_DIR}/raygui/src)
+
 # Source files
 set(GAME_SOURCES
     main.cpp
@@ -32,9 +35,6 @@ set(GAME_SOURCES
     camera.cpp
     raygui_impl.cpp
 )
-
-# Include raygui (header-only library)
-include_directories(${CMAKE_SOURCE_DIR}/raygui/src)
 
 # Create shared library
 add_library(main SHARED ${GAME_SOURCES})

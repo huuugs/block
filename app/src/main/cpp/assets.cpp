@@ -3,10 +3,11 @@
 
 namespace BlockEater {
 
-AssetManager::AssetManager() {
+AssetManager::AssetManager() : pixelFont{0}, smallFont{0} {
 }
 
 AssetManager::~AssetManager() {
+    UnloadExternalFonts();
 }
 
 void AssetManager::init() {
@@ -14,12 +15,31 @@ void AssetManager::init() {
 }
 
 void AssetManager::shutdown() {
+    UnloadExternalFonts();
 }
 
 void AssetManager::LoadFonts() {
-    // Use default font (embedded in raylib)
-    pixelFont = GetFontDefault();
-    smallFont = GetFontDefault();
+    // First try to load external font with Chinese support
+    bool loaded = false;
+    
+    // Try to load Vonwaon pixel font (Chinese support)
+    if (!loaded) {
+        loaded = LoadExternalFont("fonts/vonwaon_pixel_12px.ttf", 12);
+    }
+    
+    // Fallback: try to load Source Han Sans if available
+    if (!loaded) {
+        loaded = LoadExternalFont("fonts/SourceHanSansCN-Regular.otf", 16);
+    }
+    
+    // Fallback: use default raylib font if external fonts not available
+    if (!loaded) {
+        pixelFont = GetFontDefault();
+        smallFont = GetFontDefault();
+        TraceLog(LOG_INFO, "Using default font (no Chinese support)");
+    } else {
+        TraceLog(LOG_INFO, "External font loaded successfully");
+    }
 }
 
 Image AssetManager::CreatePixelBlockImage(Color color, int size) {
@@ -115,6 +135,42 @@ Texture2D AssetManager::GeneratePixelGrid() {
 
 Texture2D AssetManager::GeneratePixelBackground() {
     return GeneratePixelGrid();
+}
+
+bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
+    if (FileExists(fontPath)) {
+        pixelFont = LoadFontEx(fontPath, fontSize, 0, 0);
+        if (pixelFont.texture.id != 0) {
+            // Generate mipmap for better quality
+            GenTextureMipmaps(&pixelFont.texture);
+            
+            // Create a smaller version for UI elements
+            smallFont = LoadFontEx(fontPath, fontSize * 0.75, 0, 0);
+            if (smallFont.texture.id != 0) {
+                GenTextureMipmaps(&smallFont.texture);
+            } else {
+                smallFont = pixelFont;  // Fallback to main font
+            }
+            
+            TraceLog(LOG_INFO, TextFormat("Font loaded from %s", fontPath));
+            return true;
+        }
+    }
+    return false;
+}
+
+void AssetManager::UnloadExternalFonts() {
+    // Only unload if it's not the default font
+    if (pixelFont.texture.id != 0 && pixelFont.texture.id != GetFontDefault().texture.id) {
+        UnloadFont(pixelFont);
+    }
+    if (smallFont.texture.id != 0 && 
+        smallFont.texture.id != GetFontDefault().texture.id && 
+        smallFont.texture.id != pixelFont.texture.id) {
+        UnloadFont(smallFont);
+    }
+    pixelFont = GetFontDefault();
+    smallFont = GetFontDefault();
 }
 
 } // namespace BlockEater

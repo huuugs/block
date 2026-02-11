@@ -45,6 +45,15 @@ android {
     }
 
     ndkVersion = "25.2.9519653"
+
+    // Include font files in APK assets
+    sourceSets {
+        getByName("main") {
+            assets {
+                srcDirs += listOf("src/main/cpp/fonts")
+            }
+        }
+    }
 }
 
 dependencies {

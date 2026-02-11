@@ -19,10 +19,14 @@ public:
     Texture2D GeneratePixelBackground();
     Texture2D GeneratePixelGrid();
 
-    // Font loading (using default font with pixel style)
+    // Font loading
     void LoadFonts();
     Font GetPixelFont() { return pixelFont; }
     Font GetSmallFont() { return smallFont; }
+    
+    // External font loading for Chinese support
+    bool LoadExternalFont(const char* fontPath, int fontSize);
+    void UnloadExternalFonts();
 
     // Color palettes
     static constexpr Color PALETTE_RETRO[] = {
