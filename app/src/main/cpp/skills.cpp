@@ -6,13 +6,16 @@ namespace BlockEater {
 
 SkillManager::SkillManager()
     : nextBulletId(0)
-    , isRotating(false)
+    , m_isRotating(false)
     , rotateTimer(0)
     , shieldTimeLeft(0)
     , shieldDuration(1.0f)
     , shieldPosition{0, 0}
     , shieldDirection{1, 0}
     , shieldLevel(1)
+    , blinkFromPos{0, 0}
+    , blinkToPos{0, 0}
+    , blinkTimer(0)
 {
 }
 
@@ -34,10 +37,10 @@ void SkillManager::update(float dt) {
     }
 
     // Update rotation timer
-    if (isRotating) {
+    if (m_isRotating) {
         rotateTimer -= dt;
         if (rotateTimer <= 0) {
-            isRotating = false;
+            m_isRotating = false;
         }
     }
 
@@ -47,6 +50,12 @@ void SkillManager::update(float dt) {
         if (shieldTimeLeft <= 0) {
             shieldTimeLeft = 0;
         }
+    }
+
+    // Update blink effect timer
+    if (blinkTimer > 0) {
+        blinkTimer -= dt;
+        if (blinkTimer < 0) blinkTimer = 0;
     }
 }
 
@@ -103,7 +112,7 @@ bool SkillManager::useSkill(SkillType type, Vector2 playerPos, Vector2 facingDir
     switch (type) {
         case SkillType::ROTATE:
             // Activate rotation - damage reduction and reflection
-            isRotating = true;
+            m_isRotating = true;
             rotateTimer = 2.0f;  // 2 seconds
             skill.use();
             return true;
@@ -121,6 +130,9 @@ bool SkillManager::useSkill(SkillType type, Vector2 playerPos, Vector2 facingDir
             if (newPos.x > WORLD_WIDTH - playerSize) newPos.x = WORLD_WIDTH - playerSize;
             if (newPos.y < playerSize) newPos.y = playerSize;
             if (newPos.y > WORLD_HEIGHT - playerSize) newPos.y = WORLD_HEIGHT - playerSize;
+
+            // Set blink effect for visualization
+            setBlinkEffect(playerPos, newPos, 0.3f);  // 0.3 second flash effect
 
             // Note: The actual position update is handled by the caller
             skill.use();

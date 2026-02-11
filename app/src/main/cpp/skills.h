@@ -52,16 +52,33 @@ public:
     Vector2 getShieldDirection() const { return shieldDirection; }
     int getShieldLevel() const { return shieldLevel; }
 
+    // Skill visual effects
+    bool isRotating() const { return m_isRotating; }
+    float getRotateTimer() const { return rotateTimer; }
+    Vector2 getBlinkFromPos() const { return blinkFromPos; }
+    Vector2 getBlinkToPos() const { return blinkToPos; }
+    float getBlinkTimer() const { return blinkTimer; }
+    void setBlinkEffect(Vector2 from, Vector2 to, float duration) {
+        blinkFromPos = from;
+        blinkToPos = to;
+        blinkTimer = duration;
+    }
+
 private:
     Skill skills[4];
     int nextBulletId;
-    bool isRotating;
+    bool m_isRotating;
     float rotateTimer;
     float shieldTimeLeft;
     float shieldDuration;
     Vector2 shieldPosition;
     Vector2 shieldDirection;
     int shieldLevel;
+
+    // Blink effect
+    Vector2 blinkFromPos;
+    Vector2 blinkToPos;
+    float blinkTimer;
 };
 
 } // namespace BlockEater

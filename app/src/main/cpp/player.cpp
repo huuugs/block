@@ -12,7 +12,7 @@ Player::Player()
     , health(LEVEL_STATS[0].maxHealth)
     , level(1)
     , experience(0)
-    , experienceToNextLevel(100)
+    , experienceToNextLevel(50)  // Reduced from 100 for faster initial leveling
     , energy(100.0f)
     , maxEnergy(100.0f)
     , invincibleTime(0)
@@ -154,7 +154,8 @@ void Player::addExperience(int exp) {
 void Player::levelUp() {
     if (level < MAX_LEVEL) {
         level++;
-        experienceToNextLevel = 100 * level * level;
+        // Reduced experience requirement for faster leveling (was 100 * level * level)
+        experienceToNextLevel = 50 * level * level;
 
         // Restore health on level up
         int maxHp = getMaxHealth();

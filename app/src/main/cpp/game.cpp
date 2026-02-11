@@ -459,6 +459,18 @@ void Game::drawPlaying() {
     // Apply camera for world rendering
     camera->apply();
 
+    // Draw blink effect (flash trail)
+    if (skillManager->getBlinkTimer() > 0) {
+        Vector2 blinkFrom = skillManager->getBlinkFromPos();
+        Vector2 blinkTo = skillManager->getBlinkToPos();
+        float blinkAlpha = skillManager->getBlinkTimer() / 0.3f;  // Fade out
+
+        // Draw line from old position to new position
+        DrawLineEx(blinkFrom, blinkTo, 10.0f, {255, 255, 100, (unsigned char)(200 * blinkAlpha)});
+        DrawCircleV(blinkFrom, 30.0f, {255, 255, 100, (unsigned char)(100 * blinkAlpha)});
+        DrawCircleV(blinkTo, 40.0f, {255, 255, 150, (unsigned char)(150 * blinkAlpha)});
+    }
+
     // Draw shield if active
     if (skillManager->isShieldActive()) {
         Vector2 shieldPos = skillManager->getShieldPosition();
@@ -470,8 +482,49 @@ void Game::drawPlaying() {
         float startAngle = atan2f(shieldDir.y, shieldDir.x) - 22.5f * DEG2RAD;
         float endAngle = atan2f(shieldDir.y, shieldDir.x) + 22.5f * DEG2RAD;
 
-        DrawCircleSector((Vector2){shieldPos.x, shieldPos.y}, shieldRadius, startAngle, endAngle, 30, {100, 255, 100, 150});
-        DrawCircleSectorLines((Vector2){shieldPos.x, shieldPos.y}, shieldRadius, startAngle, endAngle, 30, {150, 255, 150, 255});
+        // Pulsing shield effect
+        float pulse = sinf(GetTime() * 8.0f) * 0.2f + 1.0f;
+        Color shieldColor = {
+            (unsigned char)(100 * pulse),
+            (unsigned char)(255 * pulse),
+            (unsigned char)(100 * pulse),
+            180
+        };
+        Color shieldBorderColor = {
+            (unsigned char)(150 * pulse),
+            255,
+            (unsigned char)(150 * pulse),
+            220
+        };
+
+        DrawCircleSector((Vector2){shieldPos.x, shieldPos.y}, shieldRadius * pulse, startAngle, endAngle, 30, shieldColor);
+        DrawCircleSectorLines((Vector2){shieldPos.x, shieldPos.y}, shieldRadius * pulse, startAngle, endAngle, 30, shieldBorderColor);
+    }
+
+    // Draw rotate effect (spinning particles around player)
+    if (skillManager->isRotating()) {
+        Vector2 playerPos = player->getPosition();
+        float rotateTimer = skillManager->getRotateTimer();
+        float rotation = GetTime() * 10.0f;  // Spinning animation
+        int numParticles = 8;
+        float orbitRadius = player->getSize() + 30.0f;
+
+        for (int i = 0; i < numParticles; i++) {
+            float angle = rotation + (i * 2.0f * PI / numParticles);
+            Vector2 particlePos = {
+                playerPos.x + cosf(angle) * orbitRadius,
+                playerPos.y + sinf(angle) * orbitRadius
+            };
+
+            float size = 5.0f + sinf(GetTime() * 5.0f + i) * 3.0f;
+            Color particleColor = {
+                255,
+                (unsigned char)(150 + i * 15),
+                0,
+                (unsigned char)(200 * (rotateTimer / 2.0f))
+            };
+            DrawCircleV(particlePos, size, particleColor);
+        }
     }
 
     // Draw player
@@ -616,21 +669,21 @@ void Game::spawnEnemies() {
             if (pos.y < 100) pos.y = 100;
             if (pos.y > WORLD_HEIGHT - 100) pos.y = (float)WORLD_HEIGHT - 100;
 
-            // Determine enemy type - add more small food pellets
+            // Determine enemy type - add more small food pellets (increased from 30% to 50%)
             EnemyType type = EnemyType::FLOATING;
             int typeRoll = rand() % 100;
             int playerLevel = player->getLevel();
 
-            // 30% chance for small food pellets (always smaller than player)
-            if (typeRoll < 30) {
+            // 50% chance for small food pellets (always smaller than player) - increased for easier leveling
+            if (typeRoll < 50) {
                 type = EnemyType::STATIONARY;  // Food pellets are stationary
             } else if (playerLevel >= 2) {
-                if (typeRoll < 50) type = EnemyType::CHASING;
-                else if (typeRoll < 70) type = EnemyType::BOUNCING;
+                if (typeRoll < 65) type = EnemyType::CHASING;
+                else if (typeRoll < 80) type = EnemyType::BOUNCING;
                 else type = EnemyType::STATIONARY;
             } else {
-                if (typeRoll < 40) type = EnemyType::STATIONARY;
-                else if (typeRoll < 60) type = EnemyType::BOUNCING;
+                if (typeRoll < 60) type = EnemyType::STATIONARY;
+                else if (typeRoll < 75) type = EnemyType::BOUNCING;
             }
 
             // Determine size - mix of food pellets and dangerous enemies
@@ -743,14 +796,15 @@ void Game::checkCollisions() {
 
         if (dx < combinedHalfSize && dy < combinedHalfSize) {
             if (playerSize >= enemySize) {
-                // Player eats enemy
-                player->addExperience(enemy->getExpValue());
+                // Player eats enemy - doubled experience gain for faster leveling
+                int expGained = enemy->getExpValue() * 2;
+                player->addExperience(expGained);
                 player->heal(5);
                 score += enemy->getExpValue() * 10;
 
                 // Check for level up
                 int oldLevel = player->getLevel();
-                player->addExperience(enemy->getExpValue());
+                player->addExperience(expGained);
                 if (player->getLevel() > oldLevel) {
                     particles->spawnLevelUp(playerPos, player->getLevel());
                     audio->playLevelUpSound();
