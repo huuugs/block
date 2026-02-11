@@ -260,6 +260,8 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
             0x89E6, 0x6478, 0x5DE6, 0x534A, 0x5C4F, 0x79FB, 0x52A8,  // 触摸左半屏移动
             0x83F1, 0x5F62,                           // 菱形
             0x80CC, 0x666F,                           // 背景
+            0x751F, 0x547D,                           // 生命 (HP label)
+            0x80FD, 0x91CF,                           // 能量 (Energy label)
         };
         int chineseCharCount = sizeof(gameChineseChars) / sizeof(gameChineseChars[0]);
 
@@ -289,12 +291,15 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         pixelFont = LoadFontEx(fontPath, fontSize, chineseCodepoints, codepointCount);
 
         if (pixelFont.texture.id != 0) {
+            // Set texture filter to bilinear for better Chinese character rendering
+            SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
             GenTextureMipmaps(&pixelFont.texture);
-            TraceLog(LOG_INFO, TextFormat("Font texture loaded successfully, ID: %u, size: %dx%d",
-                pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height));
+            TraceLog(LOG_INFO, TextFormat("Font texture loaded successfully, ID: %u, size: %dx%d, chars: %d",
+                pixelFont.texture.id, pixelFont.texture.width, pixelFont.texture.height, codepointCount));
 
             smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
             if (smallFont.texture.id != 0) {
+                SetTextureFilter(smallFont.texture, TEXTURE_FILTER_BILINEAR);
                 GenTextureMipmaps(&smallFont.texture);
                 TraceLog(LOG_INFO, "Small font loaded successfully");
             } else {
@@ -327,11 +332,14 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
             // Load font with Chinese character support
             pixelFont = LoadFontEx(path, fontSize, chineseCodepoints, codepointCount);
             if (pixelFont.texture.id != 0) {
+                // Set texture filter to bilinear for better Chinese character rendering
+                SetTextureFilter(pixelFont.texture, TEXTURE_FILTER_BILINEAR);
                 GenTextureMipmaps(&pixelFont.texture);
-                TraceLog(LOG_INFO, TextFormat("Font texture loaded, ID: %u", pixelFont.texture.id));
+                TraceLog(LOG_INFO, TextFormat("Font texture loaded, ID: %u, chars: %d", pixelFont.texture.id, codepointCount));
 
                 smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), chineseCodepoints, codepointCount);
                 if (smallFont.texture.id != 0) {
+                    SetTextureFilter(smallFont.texture, TEXTURE_FILTER_BILINEAR);
                     GenTextureMipmaps(&smallFont.texture);
                 } else {
                     smallFont = pixelFont;
