@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cmath>
 #include <cstring>
+#include <cstdarg>
 
 namespace BlockEater {
 
@@ -69,7 +70,7 @@ void UIManager::init(Font* mFont, Font* sFont) {
     useCustomFont = (mainFont != nullptr && mainFont->texture.id != 0);
 
     // CRITICAL: Set up raylib log callback to redirect all TraceLog to game log viewer
-    SetTraceLogCallback([](int logLevel, const char* text) -> void {
+    SetTraceLogCallback([](int logLevel, const char* text, va_list args) -> void {
         // Redirect all raylib logs to game's log system
         switch (logLevel) {
             case LOG_INFO:
