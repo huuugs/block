@@ -148,6 +148,12 @@ void UIManager::draw(GameState state, GameMode mode) {
         if (transitionAlpha > 1.0f) transitionAlpha = 1.0f;
     }
 
+    // Draw log panel if active (has priority over normal state drawing)
+    if (currentPanel == MenuPanel::LOGS) {
+        drawLogs();
+        return;
+    }
+
     // Map GameState to MenuPanel for proper isolation
     MenuPanel targetPanel = MenuPanel::NONE;
     switch (state) {
@@ -196,11 +202,6 @@ void UIManager::draw(GameState state, GameMode mode) {
         case GameState::SETTINGS:
             drawSettings();
             break;
-    }
-
-    // Draw log panel if active
-    if (currentPanel == MenuPanel::LOGS) {
-        drawLogs();
     }
 
     // Draw fade overlay if transitioning
