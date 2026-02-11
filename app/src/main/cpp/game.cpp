@@ -666,14 +666,20 @@ void Game::startGame(GameMode newMode) {
         timeRemaining = 180.0f;  // 3 minutes
     } else if (mode == GameMode::LEVEL) {
         // CRITICAL FIX: Load time limit from level definition
-        // currentLevel is 1-based, LEVELS array is 0-based
-        // If timeLimit is 0, it means no time limit (infinite)
-        if (currentLevel >= 1 && currentLevel <= GameModeManager::LEVEL_COUNT) {
-            timeRemaining = GameModeManager::LEVELS[currentLevel - 1].timeLimit;
-        } else {
-            timeRemaining = 0;  // No time limit (infinite)
+        // Level time limits: 0=no limit, 120=2min, 180=3min, 240=4min, 300=5min
+        switch (currentLevel) {
+            case 1: timeRemaining = 0; break;     // No limit
+            case 2: timeRemaining = 0; break;     // No limit
+            case 3: timeRemaining = 120; break;   // 2 minutes
+            case 4: timeRemaining = 0; break;     // No limit
+            case 5: timeRemaining = 180; break;   // 3 minutes
+            case 6: timeRemaining = 0; break;     // No limit
+            case 7: timeRemaining = 240; break;   // 4 minutes
+            case 8: timeRemaining = 0; break;     // No limit
+            case 9: timeRemaining = 300; break;   // 5 minutes
+            case 10: timeRemaining = 180; break;  // 3 minutes
+            default: timeRemaining = 0; break;    // No limit
         }
-        // Note: timeLimit = 0 means no time limit for that level
     }
 
     audio->playButtonClickSound();
