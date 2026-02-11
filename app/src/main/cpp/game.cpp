@@ -345,7 +345,7 @@ void Game::drawBackground() {
 
 void Game::drawMenu() {
     ui->draw(state, mode);
-    controls->draw();
+    // Don't draw controls in menu state
 }
 
 void Game::drawPlaying() {
