@@ -51,6 +51,8 @@ void Game::init() {
     ui = new UIManager();
     // Initialize UI with fonts (if loaded)
     ui->init(&assets->GetPixelFont(), &assets->GetSmallFont());
+    // Sync control mode with UI
+    ui->setControlMode(controlMode);
 
     particles = new ParticleSystem();
 
@@ -271,9 +273,11 @@ void Game::updateSettings() {
                 ui->cycleTheme();
                 break;
             case 2:  // Toggle Control Mode
-                controlMode = (controlMode == ControlMode::VIRTUAL_JOYSTICK) 
-                    ? ControlMode::TOUCH_FOLLOW 
+                controlMode = (controlMode == ControlMode::VIRTUAL_JOYSTICK)
+                    ? ControlMode::TOUCH_FOLLOW
                     : ControlMode::VIRTUAL_JOYSTICK;
+                ui->setControlMode(controlMode);  // Update UI display
+                controls->setMode(controlMode);   // Update controls
                 break;
             case 3:  // Back
                 state = previousState;

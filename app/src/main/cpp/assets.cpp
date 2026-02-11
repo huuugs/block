@@ -145,15 +145,45 @@ Texture2D AssetManager::GeneratePixelBackground() {
 
 bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
     // Define codepoints array for Chinese character support
-    // Includes: ASCII (32-126), CJK Unified Ideographs (0x4E00-0x9FFF), and common symbols
+    // Only load characters actually used in the game to save memory
     static int* chineseCodepoints = nullptr;
     static int codepointCount = 0;
 
     // Initialize codepoints array on first call
     if (chineseCodepoints == nullptr) {
-        // ASCII range: 32-126 (95 characters)
-        // CJK Unified Ideographs: 0x4E00-0x9FFF (20992 characters)
-        codepointCount = 95 + 20992;
+        // Build a list of only the Chinese characters used in the game
+        // Common CJK characters used in UI
+        const int gameChineseChars[] = {
+            // Menu items
+            0x65B9, 0x5757, 0x541E, 0x5410, 0x8005,  // 方块吞噬者
+            0x65E0, 0x5C3D, 0x6A21, 0x5F0F,           // 无尽模式
+            0x5173, 0x5361, 0x6A21, 0x5F0F,           // 关卡模式
+            0x65F6, 0x95F4, 0x6311, 0x6218,           // 时间挑战
+            0x8BBE, 0x7F6E,                           // 设置
+            0x9000, 0x51FA,                           // 退出
+            0x6682, 0x505C,                           // 暂停
+            0x7EE7, 0x7EED,                           // 继续
+            0x8FD4, 0x56DE,                           // 返回
+            0x4E3B, 0x83DC, 0x5355,                   // 主菜单
+            0x6E38, 0x620F, 0x7ED3, 0x675F,           // 游戏结束
+            0x518D, 0x8BD5, 0x4E00, 0x6B21,           // 再试一次
+            0x6700, 0x7EC8, 0x5F97, 0x5206,           // 最终得分
+            0x8FBE, 0x5230, 0x7B49, 0x7EA7,           // 达到等级
+            0x9009, 0x62E9, 0x5173, 0x5361,           // 选择关卡
+            0x8BED, 0x8A00,                           // 语言
+            0x4E2D, 0x6587,                           // 中文
+            0x4E3B, 0x9898,                           // 主题
+            0x63A7, 0x5236,                           // 控制
+            0x6447, 0x6746,                           // 摇杆
+            0x97F3, 0x91CF,                           // 音量
+            0x89E6, 0x6478, 0x5DE6, 0x534A, 0x5C4F, 0x79FB, 0x52A8,  // 触摸左半屏移动
+            0x83F1, 0x5F62,                           // 菱形
+            0x80CC, 0x666F,                           // 背景
+        };
+        int chineseCharCount = sizeof(gameChineseChars) / sizeof(gameChineseChars[0]);
+
+        // ASCII (32-126) + game Chinese characters
+        codepointCount = 95 + chineseCharCount;
         chineseCodepoints = (int*)malloc(codepointCount * sizeof(int));
 
         int idx = 0;
@@ -161,10 +191,13 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         for (int i = 32; i <= 126; i++) {
             chineseCodepoints[idx++] = i;
         }
-        // Add CJK Unified Ideographs (0x4E00-0x9FFF)
-        for (int i = 0x4E00; i <= 0x9FFF; i++) {
-            chineseCodepoints[idx++] = i;
+        // Add game-specific Chinese characters
+        for (int i = 0; i < chineseCharCount; i++) {
+            chineseCodepoints[idx++] = gameChineseChars[i];
         }
+
+        TraceLog(LOG_INFO, TextFormat("Initialized font codepoints: %d ASCII + %d Chinese = %d total",
+            95, chineseCharCount, codepointCount));
     }
 
     // Try loading from the given path first

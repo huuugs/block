@@ -78,6 +78,10 @@ public:
     void cycleTheme();
     Theme* getCurrentTheme() { return currentTheme; }
 
+    // Control mode
+    void setControlMode(ControlMode mode) { currentControlMode = mode; }
+    ControlMode getControlMode() const { return currentControlMode; }
+
     // Text translation helper
     const char* getText(const char* english, const char* chinese);
 
@@ -133,6 +137,9 @@ private:
     Language language;
     Theme* currentTheme;
     int currentThemeIndex;
+
+    // Control mode (for settings display)
+    ControlMode currentControlMode;
 
     // Current UI panel for isolation
     MenuPanel currentPanel;

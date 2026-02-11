@@ -112,32 +112,19 @@ void ControlSystem::updateTouchFollow() {
 }
 
 void ControlSystem::drawJoystick() {
-    Vector2 drawOrigin = joystick.origin;
-
-    // When joystick is not active, show a hint at the default position
+    // Only draw when joystick is active (finger is touching)
     if (!joystick.active) {
-        if (Vector2Length(joystick.input) < 0.01f) {
-            // Show a semi-transparent hint in the left-center of screen
-            drawOrigin = {SCREEN_WIDTH * 0.25f, SCREEN_HEIGHT * 0.75f};
-            DrawCircleV(drawOrigin, joystick.radius, {50, 50, 80, 50});  // Very transparent
-            DrawCircleLines(drawOrigin.x, drawOrigin.y, joystick.radius, {100, 100, 150, 80});  // Faint outline
-
-            // Show a small center indicator
-            DrawCircleV(drawOrigin, joystick.radius * 0.15f, {100, 100, 150, 100});
-            return;
-        }
-        return;
+        return;  // Don't draw anything when not active
     }
 
-    // Draw active joystick
     // Draw base
-    DrawCircleV(drawOrigin, joystick.radius, {50, 50, 80, 150});
-    DrawCircleLines(drawOrigin.x, drawOrigin.y, joystick.radius, {100, 100, 150, 200});
+    DrawCircleV(joystick.origin, joystick.radius, {50, 50, 80, 150});
+    DrawCircleLines(joystick.origin.x, joystick.origin.y, joystick.radius, {100, 100, 150, 200});
 
     // Draw stick
     Vector2 stickPos = {
-        drawOrigin.x + joystick.input.x * joystick.radius,
-        drawOrigin.y + joystick.input.y * joystick.radius
+        joystick.origin.x + joystick.input.x * joystick.radius,
+        joystick.origin.y + joystick.input.y * joystick.radius
     };
     DrawCircleV(stickPos, joystick.radius * 0.5f, {150, 150, 200, 200});
 }

@@ -26,6 +26,7 @@ UIManager::UIManager()
     , language(Language::ENGLISH)
     , currentThemeIndex(0)
     , currentTheme(&themes[0])
+    , currentControlMode(ControlMode::VIRTUAL_JOYSTICK)
     , currentPanel(MenuPanel::NONE)
     , previousPanel(MenuPanel::NONE)
     , mainMenuSelection(-1)
@@ -457,8 +458,11 @@ void UIManager::drawSettings() {
     // Control mode setting
     float controlY = startY + spacing * 2;
     drawTextWithFont(getText("Control:", "控制:"), (int)labelX, (int)(controlY + 15), 20, currentTheme->text);
-    
-    const char* controlText = getText("Joystick", "摇杆");
+
+    // Show current control mode
+    const char* controlText = (currentControlMode == ControlMode::VIRTUAL_JOYSTICK)
+        ? getText("Joystick", "摇杆")
+        : getText("Touch Follow", "触摸跟随");
     if (drawButton(valueX, controlY, buttonWidth, buttonHeight, controlText)) {
         settingsSelection = 2;  // Toggle control mode
     }
