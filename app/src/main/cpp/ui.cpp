@@ -173,25 +173,43 @@ void UIManager::draw(GameState state, GameMode mode) {
 }
 
 bool UIManager::drawButton(float x, float y, float width, float height, const char* text, bool enabled) {
-    // Ensure raygui uses custom font before drawing button
-    if (useCustomFont && mainFont != nullptr) {
-        GuiSetFont(*mainFont);
-        GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
-    }
+    // Custom button drawing to support Chinese fonts properly
+    // raygui doesn't reliably use custom fonts on Android
 
     Rectangle bounds = {x, y, width, height};
 
-    if (!enabled) {
-        GuiSetState(STATE_DISABLED);
+    // Check for hover/click state
+    Vector2 mousePos = GetMousePosition();
+    int touchCount = GetTouchPointCount();
+    if (touchCount > 0) {
+        mousePos = GetTouchPosition(0);
     }
 
-    int result = GuiButton(bounds, text);
+    bool hovered = CheckCollisionPointRec(mousePos, bounds);
+    bool clicked = false;
 
-    if (!enabled) {
-        GuiSetState(STATE_NORMAL);
+    if (enabled && hovered) {
+        // Check for click (touch/mouse release)
+        if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) || (touchCount > 0 && GetTouchPointCount() == 0)) {
+            clicked = true;
+        }
     }
 
-    return result;
+    // Draw button background
+    Color bgColor = enabled ? (hovered ? secondaryColor : primaryColor) : (Color){60, 60, 60, 200};
+    DrawRectangle((int)x, (int)y, (int)width, (int)height, bgColor);
+    DrawRectangleLines((int)x, (int)y, (int)width, (int)height, {150, 150, 200, 255});
+
+    // Draw text with custom font
+    int fontSize = 20;
+    int textWidth = measureTextWithFont(text, fontSize);
+    int textX = (int)(x + (width - textWidth) / 2);
+    int textY = (int)(y + (height - fontSize) / 2);
+
+    Color textColor = enabled ? WHITE : (Color){150, 150, 150, 255};
+    drawTextWithFont(text, textX, textY, fontSize, textColor);
+
+    return clicked;
 }
 
 void UIManager::drawMenuBackground() {
