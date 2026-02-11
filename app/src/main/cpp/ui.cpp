@@ -201,14 +201,20 @@ void UIManager::drawMainMenu() {
         if (menuAnimation > 1.0f) menuAnimation = 1.0f;
     }
 
+    // Ensure raygui uses custom font for Chinese text rendering
+    if (useCustomFont && mainFont != nullptr) {
+        GuiSetFont(*mainFont);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
+    }
+
     // Animated title
     const char* title = getText("BLOCK EATER", "方块吞噬者");
     int titleFontSize = 60;
     int titleWidth = measureTextWithFont(title, titleFontSize);
-    
+
     float bounce = sinf(GetTime() * 3.0f) * 5.0f * alpha;
-    Color titleColor = {255, 
-        static_cast<unsigned char>(200 + 55 * sinf(GetTime() * 3)), 
+    Color titleColor = {255,
+        static_cast<unsigned char>(200 + 55 * sinf(GetTime() * 3)),
         50, 255};
     drawTextWithFont(title, SCREEN_WIDTH / 2 - titleWidth / 2, 100 + (int)bounce, titleFontSize, titleColor);
 
@@ -220,29 +226,29 @@ void UIManager::drawMainMenu() {
     float centerX = (float)(SCREEN_WIDTH / 2) - buttonWidth / 2;
 
     // Button 0: Play Endless
-    if (drawButton(centerX, startY, buttonWidth, buttonHeight, 
+    if (drawButton(centerX, startY, buttonWidth, buttonHeight,
                    getText("PLAY ENDLESS", "无尽模式"))) {
         mainMenuSelection = 0;
     }
-    
+
     // Button 1: Level Mode
     if (drawButton(centerX, startY + (buttonHeight + spacing) * 1, buttonWidth, buttonHeight,
                    getText("LEVEL MODE", "关卡模式"))) {
         mainMenuSelection = 1;
     }
-    
+
     // Button 2: Time Challenge
     if (drawButton(centerX, startY + (buttonHeight + spacing) * 2, buttonWidth, buttonHeight,
                    getText("TIME CHALLENGE", "时间挑战"))) {
         mainMenuSelection = 2;
     }
-    
+
     // Button 3: Settings
     if (drawButton(centerX, startY + (buttonHeight + spacing) * 3, buttonWidth, buttonHeight,
                    getText("SETTINGS", "设置"))) {
         mainMenuSelection = 3;
     }
-    
+
     // Button 4: Quit
     if (drawButton(centerX, startY + (buttonHeight + spacing) * 4, buttonWidth, buttonHeight,
                    getText("QUIT", "退出"))) {
@@ -253,7 +259,7 @@ void UIManager::drawMainMenu() {
     const char* instructions = getText("Touch left side to move", "触摸左半屏移动");
     int instrWidth = measureTextWithFont(instructions, 14);
     drawTextWithFont(instructions, SCREEN_WIDTH / 2 - instrWidth / 2, SCREEN_HEIGHT - 40, 14, {150, 150, 150, 255});
-    
+
     // Version info
     drawTextWithFont("v1.0", 10, SCREEN_HEIGHT - 20, 12, {100, 100, 100, 200});
 }
@@ -261,6 +267,12 @@ void UIManager::drawMainMenu() {
 void UIManager::drawPauseMenu() {
     // Dark overlay
     drawMenuBackground();
+
+    // Ensure raygui uses custom font for Chinese text rendering
+    if (useCustomFont && mainFont != nullptr) {
+        GuiSetFont(*mainFont);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
+    }
 
     // Pause text with pulse effect
     const char* text = getText("PAUSED", "暂停");
@@ -301,6 +313,12 @@ void UIManager::drawPauseMenu() {
 void UIManager::drawGameOverMenu(int score, int level) {
     // Red-tinted overlay
     DrawRectangle(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, {50, 0, 0, 200});
+
+    // Ensure raygui uses custom font for Chinese text rendering
+    if (useCustomFont && mainFont != nullptr) {
+        GuiSetFont(*mainFont);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
+    }
 
     // Game Over text with shake effect
     const char* text = getText("GAME OVER", "游戏结束");
@@ -352,6 +370,12 @@ void UIManager::drawGameOverMenu(int score, int level) {
 }
 
 void UIManager::drawLevelSelect() {
+    // Ensure raygui uses custom font for Chinese text rendering
+    if (useCustomFont && mainFont != nullptr) {
+        GuiSetFont(*mainFont);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
+    }
+
     // Title
     const char* title = getText("SELECT LEVEL", "选择关卡");
     int fontSize = 40;
@@ -390,6 +414,12 @@ void UIManager::drawLevelSelect() {
 }
 
 void UIManager::drawSettings() {
+    // Ensure raygui uses custom font for Chinese text rendering
+    if (useCustomFont && mainFont != nullptr) {
+        GuiSetFont(*mainFont);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
+    }
+
     // Title
     const char* title = getText("SETTINGS", "设置");
     int fontSize = 40;
