@@ -22,12 +22,17 @@ void AssetManager::LoadFonts() {
     // First try to load external font with Chinese support
     bool loaded = false;
     
-    // Try to load Vonwaon pixel font (Chinese support)
+    // Try to load zpix pixel font (Chinese support) - preferred
+    if (!loaded) {
+        loaded = LoadExternalFont("fonts/zpix.ttf", 16);
+    }
+    
+    // Fallback: Vonwaon pixel font
     if (!loaded) {
         loaded = LoadExternalFont("fonts/vonwaon_pixel_12px.ttf", 12);
     }
     
-    // Fallback: try to load Source Han Sans if available
+    // Fallback: Source Han Sans
     if (!loaded) {
         loaded = LoadExternalFont("fonts/SourceHanSansCN-Regular.otf", 16);
     }
