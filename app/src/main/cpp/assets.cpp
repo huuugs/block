@@ -145,51 +145,71 @@ Texture2D AssetManager::GeneratePixelBackground() {
 bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
     // Try loading from the given path first
     if (FileExists(fontPath)) {
-        pixelFont = LoadFontEx(fontPath, fontSize, 0, 0);
-        if (pixelFont.texture.id != 0) {
-            GenTextureMipmaps(&pixelFont.texture);
-            
-            smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), 0, 0);
-            if (smallFont.texture.id != 0) {
-                GenTextureMipmaps(&smallFont.texture);
-            } else {
-                smallFont = pixelFont;
-            }
-            
-            TraceLog(LOG_INFO, TextFormat("Font loaded from %s", fontPath));
-            return true;
-        }
-    }
-    
-    // On Android, try assets path
-    #if defined(PLATFORM_ANDROID)
-    const char* androidPaths[] = {
-        "fonts/vonwaon_pixel_12px.ttf",
-        "fonts/SourceHanSansCN-Regular.otf",
-        "vonwaon_pixel_12px.ttf",
-        "SourceHanSansCN-Regular.otf"
-    };
-    
-    for (const char* path : androidPaths) {
-        if (FileExists(path)) {
-            pixelFont = LoadFontEx(path, fontSize, 0, 0);
+        // Get all codepoints from the font for full character support
+        int glyphCount = 0;
+        int *codepoints = GetCodepoints(fontPath, &glyphCount);
+
+        if (codepoints != nullptr && glyphCount > 0) {
+            // Load font with all available characters
+            pixelFont = LoadFontEx(fontPath, fontSize, glyphCount, codepoints);
             if (pixelFont.texture.id != 0) {
                 GenTextureMipmaps(&pixelFont.texture);
-                
-                smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), 0, 0);
+
+                smallFont = LoadFontEx(fontPath, (int)(fontSize * 0.75f), glyphCount, codepoints);
                 if (smallFont.texture.id != 0) {
                     GenTextureMipmaps(&smallFont.texture);
                 } else {
                     smallFont = pixelFont;
                 }
-                
-                TraceLog(LOG_INFO, TextFormat("Font loaded from Android assets: %s", path));
+
+                TraceLog(LOG_INFO, TextFormat("Font loaded from %s with %d glyphs", fontPath, glyphCount));
+                free(codepoints);
                 return true;
+            }
+            free(codepoints);
+        }
+    }
+
+    // On Android, try assets path
+    #if defined(PLATFORM_ANDROID)
+    const char* androidPaths[] = {
+        "fonts/zpix.ttf",
+        "zpix.ttf",
+        "fonts/vonwaon_pixel_12px.ttf",
+        "fonts/SourceHanSansCN-Regular.otf",
+        "vonwaon_pixel_12px.ttf",
+        "SourceHanSansCN-Regular.otf"
+    };
+
+    for (const char* path : androidPaths) {
+        if (FileExists(path)) {
+            // Get all codepoints from the font for full character support
+            int glyphCount = 0;
+            int *codepoints = GetCodepoints(path, &glyphCount);
+
+            if (codepoints != nullptr && glyphCount > 0) {
+                // Load font with all available characters
+                pixelFont = LoadFontEx(path, fontSize, glyphCount, codepoints);
+                if (pixelFont.texture.id != 0) {
+                    GenTextureMipmaps(&pixelFont.texture);
+
+                    smallFont = LoadFontEx(path, (int)(fontSize * 0.75f), glyphCount, codepoints);
+                    if (smallFont.texture.id != 0) {
+                        GenTextureMipmaps(&smallFont.texture);
+                    } else {
+                        smallFont = pixelFont;
+                    }
+
+                    TraceLog(LOG_INFO, TextFormat("Font loaded from Android assets: %s with %d glyphs", path, glyphCount));
+                    free(codepoints);
+                    return true;
+                }
+                free(codepoints);
             }
         }
     }
     #endif
-    
+
     return false;
 }
 
