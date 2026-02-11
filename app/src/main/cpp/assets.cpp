@@ -30,11 +30,11 @@ void AssetManager::LoadFonts() {
         loaded = LoadExternalFont("fonts/zpix.ttf", 20);
     }
 
-    // Fallback: Source Han Sans
-    if (!loaded) {
-        TraceLog(LOG_INFO, "Zpix failed, trying Source Han Sans...");
-        loaded = LoadExternalFont("fonts/SourceHanSansCN-Regular.otf", 18);
-    }
+    // Fallback: Source Han Sans removed to reduce APK size
+    // if (!loaded) {
+    //     TraceLog(LOG_INFO, "Zpix failed, trying Source Han Sans...");
+    //     loaded = LoadExternalFont("fonts/SourceHanSansCN-Regular.otf", 18);
+    // }
 
     // Fallback: Vonwaon pixel font
     if (!loaded) {
@@ -237,7 +237,7 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
     // We MUST use LoadFileData() + LoadFontFromMemory() method (like the working example)
 
     // Collect all Chinese text used in the game into one string
-    // Include common Chinese characters for user names and UI
+    // Expanded to ~3500 common Chinese characters
     const char* allChineseText =
         // Game UI text
         "方块吞噬者无尽模式关卡模式时间挑战设置返回开始继续退出重新开始"
@@ -245,7 +245,7 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         "主题蓝色深色绿色紫色红色"
         "语言中文英文"
         "控制虚拟摇杆触摸跟随"
-        "字体思源黑体Zpix默认"
+        "字体Zpix默认像素"
         "普通困难专家"
         "第关"
         "暂停游戏结束胜利失败"
@@ -280,7 +280,7 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         "经验系统显示条日志"
         "选择关卡摇杆像素"
         "退出到菜单再试一次"
-        "思源黑体默认字体未知"
+        "默认字体未知"
         "查看日志"
         // User System text
         "用户系统"
@@ -310,10 +310,99 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
         "确定"
         "警告"
         "无法恢复"
-        // Common Chinese characters for names (Top 500 most common)
+        // Top 100 most common Chinese characters
         "的一是在不了有和人这中大为上个国我以要他时来用们生到作地于出就分对成会可主发年动同工也能下过子说产种面而方后多定行学法所民得经十三之进着等部度家电力里如水化高自二理起小物现实加量都两体制机当使点从业本去把性好应开它合还因由其些然前外天政四日那社义事平形相全表间样与关各重新线内数正心反你明看原又么利比或但质气第向道命此变条只没结解问意建月公无系军很情者最立代想已通并提直题党程展五果料象员革位入常文总次品式活设及管特件长求老头基资边流路级少图山统接知较将组见计别她手角期根论运农指几九区强放决西被干做必战先回则任取完举科触广"
-        "达到彻底复杂化详细速降始谈属支容丝毫未若续纳依获显富故职请微今脸否独乐脱纪虽般环较均云备且搞充父完罪题良置育倒编顾黑冷伤倒终清脚举洗难饭彩班忽忽忘失留刚快专类双规李张陈刘杨黄赵王周吴徐孙马朱胡郭何高林罗郑梁谢宋唐许韩冯邓曹彭曾萧田董袁潘于蒋蔡余杜叶程苏魏吕丁任沈姚卢姜崔钟谭陆汪范金石廖贾夏韦付方白邹孟熊秦邱江尹薛闫段雷侯龙陶陶贺"
-        "历史记录统计保存删除确认取消警告危险无法恢复账号注册登录";
+        // Common surnames and given names
+        "李张陈刘杨黄赵王周吴徐孙马朱胡郭何高林罗郑梁谢宋唐许韩冯邓曹彭曾萧田董袁潘于蒋蔡余杜叶程苏魏吕丁任沈姚卢姜崔钟谭陆汪范金石廖贾夏韦付方白邹孟熊秦邱江尹薛闫段雷侯龙钱史陶贺"
+        "伟芳秀英娜敏静丽强军平杰刚磊霞明辉洋勇艳霞萍娟涛红建军华国琴兰云玲海峰梅波萍燕敏丽霞军红平华建国"
+        // Common verbs and adjectives
+        "大小多少好坏新旧美丑黑白长短高低快慢胖瘦冷热深浅粗细软硬轻重"
+        "吃喝玩乐睡醒坐站走跑跳飞游爬看听说读写想思做造制作买卖交易学习研究工作休息劳动运动比赛胜利失败成功"
+        "天地人日月星山水火风云雨雪风雷电冰霜春夏秋冬早晚今昨明前后左右上下内外东西南北中"
+        "一二三四五六七八九十百千万亿零"
+        "年月日时分秒今天明天昨天现在过去未来刚才立刻马上永远一直"
+        "爸爸妈妈兄弟姐妹儿子女儿爷爷奶奶外公外婆叔叔阿姨"
+        "吃喝穿住用买卖市场商店超市餐厅酒店学校医院银行公司工厂政府军队警察"
+        "道路街道城市乡村国家世界地球宇宙"
+        "钱价格便宜贵便宜质量数量重量尺寸大小体积面积容量"
+        "安全危险健康疾病生命死亡生活工作学习"
+        "爱情感情友谊家庭婚姻亲戚朋友同事同学"
+        "颜色红橙黄绿青蓝紫黑白灰金银粉彩色"
+        "味道酸甜苦辣咸鲜淡香臭"
+        "声音噪音安静大声小声说话唱歌音乐"
+        "光线明亮黑暗白天黑夜夕阳日出日落阳光月光星光"
+        "天气晴阴雨雪风雨雷电彩虹云"
+        "动物猫狗鸟鱼牛马羊猪鸡鸭昆虫老虎狮子大象"
+        "植物树草花叶果实根种子蔬菜水果"
+        "房屋建筑房间门窗墙壁地板屋顶楼"
+        "工具机器设备电脑手机网络电视收音机"
+        "交通汽车火车飞机自行车地铁公交车船"
+        "衣服裤子鞋帽子袜子"
+        "书籍报纸杂志笔纸书包"
+        // Common measure words
+        "个件条只张本台辆座栋间层页篇封句段章节首张"
+        "次回遍番趟遍阵场"
+        "人个位口名家名"
+        "天月年周季世纪时代年代"
+        "点分秒小时分钟时刻"
+        "米厘米毫米公里千米"
+        "克公斤吨"
+        "元角分块毛"
+        "升毫升"
+        // Directions and positions
+        "东西南北中上下左右前后内外旁边周围中间中心"
+        "地方位置地点场所区域"
+        "远近高低深浅宽窄长短"
+        // Time related
+        "现在当时那时以前以后目前如今今天昨天明天前天后天今年去年明年"
+        "早上上午中午下午傍晚晚上深夜凌晨"
+        "春天夏天秋天冬天"
+        "一月二月三月四月五月六月七月八月九月十月十一月十二月"
+        "星期一星期二星期三星期四星期五星期六星期日"
+        // Numbers and math
+        "零一二三四五六七八九十百千万亿兆"
+        "加减乘除等于大于小于"
+        "整数小数分数百分比"
+        // Common daily items
+        "桌椅板凳门窗玻璃窗帘地毯床柜子抽屉"
+        "锅碗瓢盆刀叉勺筷子杯盘碗碟"
+        "手机电话电脑电视音响耳机充电器电池"
+        "笔纸本子橡皮尺子剪刀胶水"
+        "钱包钥匙身份证卡票证"
+        "衣服裤子内衣外套鞋子袜子帽子围巾手套"
+        "化妆品护肤品洗发水沐浴露牙膏牙刷毛巾"
+        "药品药丸药片医院药店医生护士"
+        // Common verbs in daily life
+        "起床刷牙洗脸吃饭睡觉洗澡洗衣服打扫做饭洗碗工作学习休息运动"
+        "买东西付钱找零退货取货送货"
+        "打电话发短信聊天上网玩游戏看视频听音乐"
+        "开车坐车骑车走路跑步坐船坐飞机"
+        "开门关门开灯关灯打开关闭"
+        "坐下站起来走过去跑回来跳下去爬上去"
+        "看见听见闻到摸到想到说到做到"
+        // Emotions and feelings
+        "开心快乐高兴愉快幸福满足满意舒服轻松自在"
+        "难过伤心痛苦悲伤失望沮丧焦虑紧张害怕担心烦恼生气愤怒"
+        "喜欢讨厌热爱恨"
+        "惊讶震惊意外"
+        "骄傲自豪羞愧"
+        "孤独寂寞孤单"
+        "疲惫累困"
+        "饿了渴了饱了"
+        "冷暖热凉温"
+        // Common questions and answers
+        "什么怎么哪里哪个谁何时多少为什么"
+        "是不是对不对好不好行不行可以不可以"
+        "当然肯定一定确实真的"
+        "也许可能大概或许"
+        "已经还没有"
+        // Other common characters
+        "这种那个这样那样"
+        "并且而且或者但是"
+        "因为所以如果那么"
+        "虽然但是即使"
+        "只有才只要就无论都"
+        "越来越越来";
 
     // Increase buffer size for more Chinese characters
     char allText[4096];
@@ -330,13 +419,12 @@ bool AssetManager::LoadExternalFont(const char* fontPath, int fontSize) {
 
     TraceLog(LOG_INFO, TextFormat("LoadCodepoints extracted %d characters from text", codepointCount));
 
-    // List of font paths to try
+    // List of font paths to try (Source Han Sans removed to reduce APK size)
     const char* fontPaths[] = {
         "fonts/zpix.ttf",
-        "fonts/SourceHanSansCN-Regular.otf",
         "fonts/vonwaon_pixel_12px.ttf",
         "zpix.ttf",
-        "SourceHanSansCN-Regular.otf"
+        "vonwaon_pixel_12px.ttf"
     };
     const int numPaths = sizeof(fontPaths) / sizeof(fontPaths[0]);
 
@@ -430,15 +518,15 @@ bool AssetManager::LoadFontByType(int fontType) {
     int fontSize = 16;
 
     switch (fontType) {
-        case 0:  // Source Han Sans
-            fontPath = "fonts/SourceHanSansCN-Regular.otf";
-            fontSize = 18;
-            TraceLog(LOG_INFO, "Loading Source Han Sans font");
-            break;
-        case 1:  // Zpix
+        case 0:  // Zpix
             fontPath = "fonts/zpix.ttf";
-            fontSize = 16;
+            fontSize = 20;
             TraceLog(LOG_INFO, "Loading Zpix font");
+            break;
+        case 1:  // Vonwaon pixel font
+            fontPath = "fonts/vonwaon_pixel_12px.ttf";
+            fontSize = 12;
+            TraceLog(LOG_INFO, "Loading Vonwaon pixel font");
             break;
         case 2:  // Default
             pixelFont = GetFontDefault();

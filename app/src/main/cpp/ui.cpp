@@ -948,7 +948,7 @@ void UIManager::cycleFont() {
             currentFontType = FontType::DEFAULT;
             break;
         case FontType::DEFAULT:
-            currentFontType = FontType::SOURCE_HAN_SANS;
+            currentFontType = FontType::ZPIX;  // Skip SOURCE_HAN_SANS (removed)
             break;
     }
 }
@@ -956,7 +956,7 @@ void UIManager::cycleFont() {
 const char* UIManager::getFontName() const {
     switch (currentFontType) {
         case FontType::SOURCE_HAN_SANS:
-            return getText("Source Han Sans", "思源黑体");
+            return getText("Zpix", "像素字体");  // Remapped to Zpix
         case FontType::ZPIX:
             return getText("Zpix", "像素字体");
         case FontType::DEFAULT:

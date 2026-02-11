@@ -277,15 +277,19 @@ void Game::updatePlaying() {
     ui->update(deltaTime);
 
     // Check for skill button clicks (bottom-right corner)
+    // CRITICAL FIX: Check ALL touch points, not just the first one
+    // This allows using joystick (touch 0) and skills (touch 1) simultaneously
     int touchCount = GetTouchPointCount();
-    if (touchCount > 0 || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        Vector2 pos = (touchCount > 0) ? GetTouchPosition(0) : GetMousePosition();
 
-        // Skill button area: bottom-right
-        float buttonSize = 60.0f;
-        float startX = SCREEN_WIDTH - 280.0f;
-        float startY = SCREEN_HEIGHT - 80.0f;
-        float spacing = 70.0f;
+    // Skill button area: bottom-right
+    float buttonSize = 60.0f;
+    float startX = SCREEN_WIDTH - 280.0f;
+    float startY = SCREEN_HEIGHT - 80.0f;
+    float spacing = 70.0f;
+
+    // Check each touch point for skill button clicks
+    for (int t = 0; t < touchCount; t++) {
+        Vector2 pos = GetTouchPosition(t);
 
         for (int i = 0; i < 4; i++) {
             float x = startX + i * spacing;
@@ -337,7 +341,61 @@ void Game::updatePlaying() {
                         audio->playRotateSound();
                     }
                 }
-                break;  // Only handle one button click at a time
+                break;  // Only handle one button click per touch point
+            }
+        }
+    }
+
+    // Also check mouse clicks for testing on desktop
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        Vector2 pos = GetMousePosition();
+        for (int i = 0; i < 4; i++) {
+            float x = startX + i * spacing;
+            if (pos.x >= x && pos.x <= x + buttonSize &&
+                pos.y >= startY && pos.y <= startY + buttonSize) {
+                // Skill button clicked
+                SkillType skillType = (SkillType)i;
+                if (skillManager->canUseSkill(skillType)) {
+                    Vector2 facingDir = player->getFacingDirection();
+                    int playerHP = player->getHealth();
+
+                    if (skillType == SkillType::BLINK) {
+                        float blinkDist = player->getSize() * 5.0f;
+                        Vector2 newPos = {
+                            player->getPosition().x + facingDir.x * blinkDist,
+                            player->getPosition().y + facingDir.y * blinkDist
+                        };
+                        if (newPos.x < player->getSize()) newPos.x = player->getSize();
+                        if (newPos.x > WORLD_WIDTH - player->getSize()) newPos.x = WORLD_WIDTH - player->getSize();
+                        if (newPos.y < player->getSize()) newPos.y = player->getSize();
+                        if (newPos.y > WORLD_HEIGHT - player->getSize()) newPos.y = WORLD_HEIGHT - player->getSize();
+                        player->setPosition(newPos);
+                        skillManager->useSkill(skillType, newPos, facingDir, player->getSize(), playerHP);
+                        audio->playBlinkSound();
+                    } else if (skillType == SkillType::SHOOT) {
+                        int hpCost = 20;
+                        int currentHP = player->getHealth();
+                        if (currentHP > hpCost) {
+                            player->takeDamage(hpCost);
+                            int damage = hpCost * 3;
+                            Bullet* bullet = new Bullet(player->getPosition(), facingDir, damage, 0);
+                            bullets.push_back(bullet);
+                            skillManager->useSkill(skillType, player->getPosition(), facingDir, player->getSize(), currentHP);
+                            audio->playShootSound();
+                        }
+                    } else if (skillType == SkillType::SHIELD) {
+                        int playerLevel = player->getLevel();
+                        float shieldDuration = 1.0f + (playerLevel - 1) * 1.0f;
+                        if (shieldDuration > 15.0f) shieldDuration = 15.0f;
+                        skillManager->setShieldDuration(shieldDuration);
+                        skillManager->useSkill(skillType, player->getPosition(), facingDir, player->getSize(), playerHP);
+                        audio->playShieldSound();
+                    } else {
+                        skillManager->useSkill(skillType, player->getPosition(), facingDir, player->getSize(), playerHP);
+                        audio->playRotateSound();
+                    }
+                }
+                break;
             }
         }
     }
