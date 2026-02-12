@@ -99,14 +99,24 @@ void ControlSystem::updateJoystick() {
         return;
     }
 
-    // If joystick is active, look for same touch point by actual touch ID
+    // If joystick is active, use the stored touch index directly
+    // FIX: Use touch index instead of touch ID to avoid Android touch ID instability
     if (joystick.active && joystick.touchPointId >= 0) {
-        bool foundTouch = false;
-        for (int i = 0; i < touchCount; i++) {
-            int currentTouchId = GetTouchPointId(i);
-            if (currentTouchId == joystick.touchPointId) {
-                // Found our tracked touch point, update input
-                Vector2 touchPos = GetTouchPosition(i);
+        // Validate the touch index is still valid
+        // Since we track index 0 for joystick, just check if touchCount > 0
+        // and the touch is still in left half (or we can be more lenient)
+        if (touchCount > 0) {
+            // Use the first touch point (index 0) which is typically the primary touch
+            // This is more reliable than tracking by ID on Android
+            Vector2 touchPos = GetTouchPosition(0);
+            
+            // Check if this touch is roughly in the left half or near the origin
+            // We allow some leeway since finger might drift
+            float distFromOrigin = Vector2Length(touchPos - joystick.origin);
+            bool touchValid = (touchPos.x < SCREEN_WIDTH / 2 + joystick.radius) || 
+                              (distFromOrigin < joystick.radius * 2);
+            
+            if (touchValid) {
                 Vector2 delta = touchPos - joystick.origin;
 
                 float dist = Vector2Length(delta);
@@ -115,26 +125,43 @@ void ControlSystem::updateJoystick() {
                 }
 
                 // IMPORTANT: Use normalized value from -1 to 1 based on displacement from origin
-                // This ensures the joystick responds even to small finger movements
                 joystick.input = {delta.x / joystick.radius, delta.y / joystick.radius};
-                foundTouch = true;
 
-                // Debug: Always log joystick input for diagnosis
-                // Use TextFormat for proper formatting on Android
+                // Debug: Log joystick input
                 TraceLog(LOG_INFO, TextFormat("Joystick input: %i,%i (delta: %i,%i dist: %i)",
                         (int)(joystick.input.x * 1000), (int)(joystick.input.y * 1000),
                         (int)(delta.x), (int)(delta.y), (int)(dist)));
-                break;
+            } else {
+                // Touch moved too far from joystick area, check if there are other touches in left half
+                bool foundNewTouch = false;
+                for (int i = 0; i < touchCount; i++) {
+                    Vector2 checkPos = GetTouchPosition(i);
+                    if (checkPos.x < SCREEN_WIDTH / 2) {
+                        // Found a touch in left half, update origin to follow it
+                        joystick.origin = checkPos;
+                        joystick.input = {0, 0};
+                        foundNewTouch = true;
+                        TraceLog(LOG_INFO, "Joystick origin updated to follow new touch");
+                        break;
+                    }
+                }
+                
+                if (!foundNewTouch) {
+                    // No valid touch found, deactivate
+                    joystick.active = false;
+                    joystick.input = {0, 0};
+                    joystick.touchPointId = -1;
+                    joystick.originSet = false;
+                    TraceLog(LOG_INFO, "Joystick deactivated - touch out of range");
+                }
             }
-        }
-
-        if (!foundTouch) {
-            // Our tracked touch point was lifted, reset joystick
+        } else {
+            // No touches available
             joystick.active = false;
             joystick.input = {0, 0};
             joystick.touchPointId = -1;
             joystick.originSet = false;
-            TraceLog(LOG_INFO, "Joystick deactivated - touch lifted");
+            TraceLog(LOG_INFO, "Joystick deactivated - no touches");
         }
         return;
     }
@@ -147,15 +174,14 @@ void ControlSystem::updateJoystick() {
             // Check if touch is in left half of screen
             if (touchPos.x < SCREEN_WIDTH / 2) {
                 joystick.active = true;
-                joystick.touchPointId = GetTouchPointId(i);  // Store actual touch ID
+                joystick.touchPointId = 0;  // FIX: Use index 0 instead of GetTouchPointId
                 joystick.origin = touchPos;  // Set origin at touch position
                 joystick.originSet = true;
                 joystick.input = {0, 0};  // Start with no input
-                // Use TextFormat for proper formatting
-                TraceLog(LOG_INFO, TextFormat("Joystick ACTIVATED: origin=%i,%i touchID=%i screen=%ix%i",
+                TraceLog(LOG_INFO, TextFormat("Joystick ACTIVATED: origin=%i,%i screen=%ix%i",
                         (int)(joystick.origin.x), (int)(joystick.origin.y),
-                        joystick.touchPointId, SCREEN_WIDTH, SCREEN_HEIGHT));
-                break;  // Only handle one touch for joystick
+                        SCREEN_WIDTH, SCREEN_HEIGHT));
+                break;
             }
         }
     }
