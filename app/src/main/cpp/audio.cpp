@@ -276,7 +276,8 @@ Music AudioGenerator::GenerateBackgroundMusic() {
     }
 
     // Load music from memory buffer
-    Music music = LoadMusicStreamFromMemory(dataBuffer, dataSize);
+    // LoadMusicStreamFromMemory requires: fileType, data, dataSize
+    Music music = LoadMusicStreamFromMemory(".ogg", dataBuffer, dataSize);
 
     // Clean up the data buffer (raylib makes its own copy)
     delete[] dataBuffer;
