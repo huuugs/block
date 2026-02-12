@@ -116,10 +116,9 @@ void ControlSystem::updateJoystick() {
                 joystick.input = {delta.x / joystick.radius, delta.y / joystick.radius};
                 foundTouch = true;
 
-                // Debug: TraceLog joystick input when it's significant
-                if (Vector2Length(joystick.input) > 0.1f) {
-                    TraceLog(LOG_DEBUG, "Joystick: %.2f, %.2f", joystick.input.x, joystick.input.y);
-                }
+                // Debug: Always log joystick input for diagnosis (removed threshold check)
+                TraceLog(LOG_DEBUG, "Joystick input: %.2f, %.2f (delta: %.0f, %.0f, dist: %.0f)",
+                         joystick.input.x, joystick.input.y, delta.x, delta.y, dist);
                 break;
             }
         }
@@ -130,6 +129,7 @@ void ControlSystem::updateJoystick() {
             joystick.input = {0, 0};
             joystick.touchPointId = -1;
             joystick.originSet = false;
+            TraceLog(LOG_INFO, "Joystick deactivated - touch lifted");
         }
         return;
     }
@@ -146,7 +146,8 @@ void ControlSystem::updateJoystick() {
                 joystick.origin = touchPos;  // Set origin at touch position
                 joystick.originSet = true;
                 joystick.input = {0, 0};  // Start with no input
-                TraceLog(LOG_INFO, "Joystick activated at: %.0f, %.0f", touchPos.x, touchPos.y);
+                TraceLog(LOG_INFO, "Joystick ACTIVATED at: %.0f, %.0f (touchID: %d)",
+                         touchPos.x, touchPos.y, joystick.touchPointId);
                 break;  // Only handle one touch for joystick
             }
         }

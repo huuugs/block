@@ -376,10 +376,16 @@ void UIManager::drawMainMenu() {
         mainMenuSelection = 3;
     }
 
-    // Button 4: Quit
+    // Button 4: User System
     if (drawButton(centerX, startY + (buttonHeight + spacing) * 4, buttonWidth, buttonHeight,
-                   getText("QUIT", "退出"))) {
+                   getText("USERS", "用户"))) {
         mainMenuSelection = 4;
+    }
+
+    // Button 5: Quit
+    if (drawButton(centerX, startY + (buttonHeight + spacing) * 5, buttonWidth, buttonHeight,
+                   getText("QUIT", "退出"))) {
+        mainMenuSelection = 5;
     }
 
     // Instructions at bottom
@@ -675,21 +681,21 @@ void UIManager::drawSettings() {
 void UIManager::drawHUD(const Player* player) {
     if (!player) return;
 
-    // Top bar background with transparency
-    drawPixelRect(0, 0, SCREEN_WIDTH, 60, backgroundColor);
+    // Top bar background with transparency - increased height to fit all bars
+    drawPixelRect(0, 0, SCREEN_WIDTH, 80, backgroundColor);
 
     // Health bar with label
-    drawHealthBar(20, 10, 200, 20, player->getHealth(), player->getMaxHealth(), {200, 50, 50, 255});
+    drawHealthBar(20, 10, 180, 20, player->getHealth(), player->getMaxHealth(), {200, 50, 50, 255});
     const char* hpLabel = getText("HP", "生命");
     drawTextWithFont(hpLabel, 5, 12, 12, {255, 200, 200, 255});
 
     // Energy bar with label
-    drawEnergyBar(20, 35, 200, 15, player->getEnergy(), player->getMaxEnergy());
+    drawEnergyBar(20, 35, 180, 15, player->getEnergy(), player->getMaxEnergy());
     const char* energyLabel = getText("Energy", "能量");
     drawTextWithFont(energyLabel, 5, 37, 10, {200, 200, 255, 255});
 
     // Experience bar with label (below energy bar)
-    drawExpBar(20, 55, 200, 12, player->getExperience(), player->getExperienceToNextLevel(), {50, 200, 100, 255});
+    drawExpBar(20, 55, 180, 12, player->getExperience(), player->getExperienceToNextLevel(), {50, 200, 100, 255});
 }
 
 void UIManager::drawHealthBar(float x, float y, float width, float height, int current, int max, Color color) {
@@ -727,20 +733,20 @@ void UIManager::drawEnergyBar(float x, float y, float width, float height, float
 void UIManager::drawExpBar(float x, float y, float width, float height, int current, int max, Color color) {
     // Background
     DrawRectangle((int)x, (int)y, (int)width, (int)height, {50, 50, 50, 200});
-    
+
     // XP fill
     float percentage = (float)current / (float)max;
     if (percentage > 1.0f) percentage = 1.0f;
     int fillWidth = (int)(width * percentage);
     DrawRectangle((int)x, (int)y, fillWidth, (int)height, color);
-    
+
     // Border
     DrawRectangleLines((int)x, (int)y, (int)width, (int)height, {200, 200, 200, 100});
-    
-    // Label on the left side
+
+    // Label on the left side - FIXED: use positive x position
     const char* label = getText("XP", "经验");
-    drawTextWithFont(label, (int)x - 25, (int)y, 10, {200, 255, 200, 255});
-    
+    drawTextWithFont(label, (int)x - 20, (int)y, 10, {200, 255, 200, 255});
+
     // XP value text in the center of bar
     char xpText[32];
     sprintf(xpText, "%d/%d", current, max);

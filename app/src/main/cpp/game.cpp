@@ -225,7 +225,11 @@ void Game::updateMenu() {
                 state = GameState::SETTINGS;
                 ui->resetTransition();
                 break;
-            case 4:  // Quit
+            case 4:  // Users
+                state = GameState::USER_MENU;
+                ui->resetTransition();
+                break;
+            case 5:  // Quit
                 // Stop music before exiting
                 audio->playBackgroundMusic(false);
                 // Exit the game loop
