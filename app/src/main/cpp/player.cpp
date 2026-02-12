@@ -137,6 +137,9 @@ void Player::applyJoystickInput(Vector2 inputDirection) {
         steering = Vector2Normalize(steering) * maxForce;
     }
 
+    // FIX: Multiply steering force by 10 for better joystick feel on mobile
+    steering = steering * 10.0f;
+
     // Apply force (F = ma, so a = F/m)
     applyForce(steering);
 
