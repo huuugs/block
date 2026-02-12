@@ -1,6 +1,7 @@
 #include "skills.h"
 #include "enemy.h"
 #include "player.h"
+#include "game.h"
 #include <cstdio>
 #include <cmath>
 

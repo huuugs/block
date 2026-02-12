@@ -7,9 +7,7 @@
 
 namespace BlockEater {
 
-// Forward declaration
-class Enemy;
-class Player;
+// Forward declarations from game.h (Player and Enemy are already declared there)
 
 // Skill types
 enum class SkillType {
