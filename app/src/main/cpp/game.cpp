@@ -224,11 +224,33 @@ void Game::updatePlaying() {
     // Update player - pass player position for touch follow mode
     Vector2 input = controls->getInputVector(player->getPosition());
     player->move(input);
-    player->update(deltaTime);
+    player->update(deltaTime, bullets);
 
-    // Update enemies
+    // Update enemies (with bullet shooting for FLOATING types)
     for (auto* enemy : enemies) {
-        enemy->update(deltaTime, player->getPosition());
+        enemy->update(deltaTime, player->getPosition(), bullets);
+    }
+    
+    // Enemy separation - prevent overlapping
+    for (size_t i = 0; i < enemies.size(); i++) {
+        for (size_t j = i + 1; j < enemies.size(); j++) {
+            Enemy* e1 = enemies[i];
+            Enemy* e2 = enemies[j];
+            if (!e1->isAlive() || !e2->isAlive()) continue;
+            
+            Vector2 pos1 = e1->getPosition();
+            Vector2 pos2 = e2->getPosition();
+            float dist = Vector2Length(pos1 - pos2);
+            float minDist = (e1->getSize() + e2->getSize()) / 2.0f;
+            
+            if (dist < minDist && dist > 0.01f) {
+                // Push apart
+                Vector2 pushDir = Vector2Normalize(pos1 - pos2);
+                float pushAmount = (minDist - dist) * 0.5f;
+                e1->setPosition(pos1 + pushDir * pushAmount);
+                e2->setPosition(pos2 - pushDir * pushAmount);
+            }
+        }
     }
 
     // Update bullets
@@ -775,14 +797,14 @@ void Game::resetGame() {
 }
 
 void Game::spawnEnemies() {
-    // Keep a minimum number of enemies - increased significantly
-    int minEnemies = 20 + (int)(gameTime / 10.0f);  // More enemies, faster increase
-    minEnemies = (minEnemies > 100) ? 100 : minEnemies;  // Higher cap
+    // Keep a minimum number of enemies - 4x spawn rate
+    int minEnemies = 80 + (int)(gameTime / 2.5f);  // 4x base, 4x faster increase
+    minEnemies = (minEnemies > 400) ? 400 : minEnemies;  // Higher cap
 
     if ((int)enemies.size() < minEnemies) {
-        // Spawn multiple enemies at once for better gameplay
-        int spawnCount = 3 + (int)(gameTime / 60.0f);  // Spawn in groups
-        if (spawnCount > 10) spawnCount = 10;
+        // Spawn multiple enemies at once - 4x spawn count
+        int spawnCount = 12 + (int)(gameTime / 15.0f);  // 4x spawn groups
+        if (spawnCount > 40) spawnCount = 40;
 
         for (int i = 0; i < spawnCount && (int)enemies.size() < minEnemies; i++) {
             // Use player position directly for spawning
@@ -816,21 +838,19 @@ void Game::spawnEnemies() {
             if (pos.y < 100) pos.y = 100;
             if (pos.y > WORLD_HEIGHT - 100) pos.y = (float)WORLD_HEIGHT - 100;
 
-            // Determine enemy type - add more small food pellets (increased from 30% to 50%)
+            // Determine enemy type - all 4 types spawn randomly
             EnemyType type = EnemyType::FLOATING;
             int typeRoll = rand() % 100;
-            int playerLevel = player->getLevel();
 
-            // 50% chance for small food pellets (always smaller than player) - increased for easier leveling
-            if (typeRoll < 50) {
-                type = EnemyType::STATIONARY;  // Food pellets are stationary
-            } else if (playerLevel >= 2) {
-                if (typeRoll < 65) type = EnemyType::CHASING;
-                else if (typeRoll < 80) type = EnemyType::BOUNCING;
-                else type = EnemyType::STATIONARY;
+            // All 4 types have roughly equal chance (25% each)
+            if (typeRoll < 25) {
+                type = EnemyType::FLOATING;
+            } else if (typeRoll < 50) {
+                type = EnemyType::CHASING;
+            } else if (typeRoll < 75) {
+                type = EnemyType::STATIONARY;
             } else {
-                if (typeRoll < 60) type = EnemyType::STATIONARY;
-                else if (typeRoll < 75) type = EnemyType::BOUNCING;
+                type = EnemyType::BOUNCING;
             }
 
             // Determine size - mix of food pellets and dangerous enemies
@@ -874,41 +894,61 @@ void Game::checkCollisions() {
         Vector2 bulletPos = bullet->getPosition();
         int bulletSize = bullet->getSize();
 
-        // Check collision with enemies
+        // Check collision with enemies (player bullets only, playerId >= 0)
         bool bulletHit = false;
-        for (auto* enemy : enemies) {
-            if (!enemy->isAlive()) continue;
+        if (bullet->getPlayerId() >= 0) {
+            for (auto* enemy : enemies) {
+                if (!enemy->isAlive()) continue;
 
-            Vector2 enemyPos = enemy->getPosition();
-            int enemySize = enemy->getSize();
+                Vector2 enemyPos = enemy->getPosition();
+                int enemySize = enemy->getSize();
 
-            float dx = fabs(bulletPos.x - enemyPos.x);
-            float dy = fabs(bulletPos.y - enemyPos.y);
-            float combinedHalfSize = (bulletSize + enemySize) / 2.0f;
+                float dx = fabs(bulletPos.x - enemyPos.x);
+                float dy = fabs(bulletPos.y - enemyPos.y);
+                float combinedHalfSize = (bulletSize + enemySize) / 2.0f;
 
+                if (dx < combinedHalfSize && dy < combinedHalfSize) {
+                    // Bullet hit enemy
+                    int damage = bullet->getDamage();
+                    enemy->takeDamage(damage);
+                    bullet->kill();
+                    bulletHit = true;
+
+                    // Spawn hit effect
+                    particles->spawnPixelExplosion(bulletPos, {255, 255, 0, 255}, 5);
+                    particles->spawnDamageNumber(enemyPos, damage, true);
+
+                    if (!enemy->isAlive()) {
+                        score += damage * 5;
+                        player->addExperience(damage / 2);
+                    }
+                    break;
+                }
+            }
+        }
+        
+        // Check collision with player (enemy bullets only, playerId < 0)
+        if (!bulletHit && bullet->getPlayerId() < 0) {
+            float dx = fabs(bulletPos.x - playerPos.x);
+            float dy = fabs(bulletPos.y - playerPos.y);
+            float combinedHalfSize = (bulletSize + playerSize) / 2.0f;
+            
             if (dx < combinedHalfSize && dy < combinedHalfSize) {
-                // Bullet hit enemy
+                // Enemy bullet hit player
                 int damage = bullet->getDamage();
-                enemy->takeDamage(damage);
+                player->takeDamage(damage);
                 bullet->kill();
                 bulletHit = true;
-
+                
                 // Spawn hit effect
-                particles->spawnPixelExplosion(bulletPos, {255, 255, 0, 255}, 5);
-                particles->spawnDamageNumber(enemyPos, damage, true);
-
-                if (!enemy->isAlive()) {
-                    score += damage * 5;
-                    player->addExperience(damage / 2);
-                }
-                break;
+                particles->spawnPixelExplosion(bulletPos, {255, 100, 100, 255}, 5);
+                particles->spawnDamageNumber(playerPos, damage, false);
+                audio->playHitSound();
             }
         }
 
         if (!bulletHit) {
             ++bulletIt;
-        } else {
-            // Bullet was removed, iterator is already at next element
         }
     }
 
@@ -990,7 +1030,16 @@ void Game::checkCollisions() {
 
         if (dx < combinedHalfSize && dy < combinedHalfSize) {
             if (playerSize >= enemySize) {
-                // Player eats enemy - doubled experience gain for faster leveling
+                // Player eats enemy - grow by area
+                player->growByArea(enemySize);
+                
+                // Gain bullet skill if eating FLOATING enemy
+                if (enemy->getType() == EnemyType::FLOATING && !player->hasBulletSkill()) {
+                    player->enableBulletSkill();
+                    particles->spawnTextPopup(playerPos, "BULLET SKILL!", {255, 255, 0, 255});
+                }
+                
+                // Experience gain
                 int expGained = enemy->getExpValue() * 2;
                 player->addExperience(expGained);
                 player->heal(5);
@@ -998,7 +1047,6 @@ void Game::checkCollisions() {
 
                 // Check for level up
                 int oldLevel = player->getLevel();
-                player->addExperience(expGained);
                 if (player->getLevel() > oldLevel) {
                     particles->spawnLevelUp(playerPos, player->getLevel());
                     audio->playLevelUpSound();
@@ -1008,7 +1056,7 @@ void Game::checkCollisions() {
 
                 // Spawn particles
                 particles->spawnPixelExplosion(enemyPos, enemy->getColor(), 10);
-                particles->spawnTextPopup(enemyPos, "+10", {100, 255, 100, 255});
+                particles->spawnTextPopup(enemyPos, "+SIZE", {100, 255, 100, 255});
 
                 enemy->kill();
             } else {
@@ -1027,6 +1075,44 @@ void Game::checkCollisions() {
         }
 
         ++it;
+    }
+    
+    // Check enemy-enemy collisions (eating each other)
+    for (size_t i = 0; i < enemies.size(); i++) {
+        Enemy* e1 = enemies[i];
+        if (!e1->isAlive()) continue;
+        
+        for (size_t j = i + 1; j < enemies.size(); j++) {
+            Enemy* e2 = enemies[j];
+            if (!e2->isAlive()) continue;
+            
+            Vector2 pos1 = e1->getPosition();
+            Vector2 pos2 = e2->getPosition();
+            int size1 = e1->getSize();
+            int size2 = e2->getSize();
+            
+            float dx = fabs(pos1.x - pos2.x);
+            float dy = fabs(pos1.y - pos2.y);
+            float combinedHalfSize = (size1 + size2) / 2.0f;
+            
+            if (dx < combinedHalfSize && dy < combinedHalfSize) {
+                // Bigger enemy eats smaller one (must be at least 10% bigger)
+                if (size1 >= size2 * 1.1f) {
+                    // e1 eats e2
+                    e1->growByArea(size2);
+                    e2->takeDamage(e2->getHealth());  // Kill e2
+                    particles->spawnPixelExplosion(pos2, e2->getColor(), 8);
+                    particles->spawnTextPopup(pos2, "EATEN", {255, 100, 100, 255});
+                } else if (size2 >= size1 * 1.1f) {
+                    // e2 eats e1
+                    e2->growByArea(size1);
+                    e1->takeDamage(e1->getHealth());  // Kill e1
+                    particles->spawnPixelExplosion(pos1, e1->getColor(), 8);
+                    particles->spawnTextPopup(pos1, "EATEN", {255, 100, 100, 255});
+                }
+                // If sizes are similar, just push apart (already done in update)
+            }
+        }
     }
 }
 

@@ -1,4 +1,5 @@
 #include "player.h"
+#include "bullet.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -9,20 +10,23 @@ Player::Player()
     : position{WORLD_WIDTH / 2.0f, WORLD_HEIGHT / 2.0f}
     , velocity{0, 0}
     , facingDirection{1, 0}  // Default facing right
+    , size(INITIAL_SIZE)  // Start with initial size
     , health(LEVEL_STATS[0].maxHealth)
     , level(1)
     , experience(0)
-    , experienceToNextLevel(50)  // Reduced from 100 for faster initial leveling
+    , experienceToNextLevel(50)
     , energy(100.0f)
     , maxEnergy(100.0f)
     , invincibleTime(0)
+    , bulletSkillEnabled(false)
+    , bulletCooldown(0)
 {
 }
 
 Player::~Player() {
 }
 
-void Player::update(float dt) {
+void Player::update(float dt, std::vector<Bullet*>& bullets) {
     // Update invincibility frames
     if (invincibleTime > 0) {
         invincibleTime -= dt;
@@ -43,6 +47,14 @@ void Player::update(float dt) {
 
     // Check bounds
     checkBounds();
+    
+    // Update bullet skill
+    updateBulletSkill(dt);
+    
+    // Try to shoot bullets if skill enabled
+    if (bulletSkillEnabled) {
+        tryShootBullet(bullets);
+    }
 }
 
 void Player::draw() {
@@ -51,7 +63,6 @@ void Player::draw() {
         return;
     }
 
-    int size = getSize();
     Color c = getColor();
 
     // Draw shadow
@@ -96,6 +107,12 @@ void Player::draw() {
              (int)position.x - textWidth/2,
              (int)position.y - fontSize/2,
              fontSize, WHITE);
+             
+    // Draw bullet skill indicator
+    if (bulletSkillEnabled) {
+        // Draw small glow around player
+        DrawCircleLines((int)position.x, (int)position.y, size/2 + 5, {255, 255, 0, 150});
+    }
 }
 
 void Player::move(Vector2 direction) {
@@ -154,7 +171,7 @@ void Player::addExperience(int exp) {
 void Player::levelUp() {
     if (level < MAX_LEVEL) {
         level++;
-        // Reduced experience requirement for faster leveling (was 100 * level * level)
+        // Reduced experience requirement for faster leveling
         experienceToNextLevel = 50 * level * level;
 
         // Restore health on level up
@@ -166,8 +183,48 @@ void Player::levelUp() {
     }
 }
 
+void Player::growByArea(int eatenSize) {
+    // Calculate new size based on area: A_new = A_old + A_eaten
+    // size is diameter, so area is proportional to size^2
+    float oldArea = size * size;
+    float eatenArea = eatenSize * eatenSize;
+    float newArea = oldArea + eatenArea;
+    int newSize = (int)sqrtf(newArea);
+    
+    setSize(newSize);
+}
+
+void Player::setSize(int newSize) {
+    if (newSize < 10) newSize = 10;
+    if (newSize > 500) newSize = 500;  // Max size cap
+    
+    size = newSize;
+    
+    // Health is kept proportional to max health when size changes
+    float healthPercent = (float)health / getMaxHealth();
+    health = (int)(getMaxHealth() * healthPercent);
+    if (health < 1) health = 1;
+}
+
+void Player::tryShootBullet(std::vector<Bullet*>& bullets) {
+    if (!bulletSkillEnabled || bulletCooldown > 0) return;
+    
+    // Shoot in facing direction
+    Bullet* bullet = new Bullet(position, facingDirection, size, 0);  // playerId = 0
+    bullets.push_back(bullet);
+    
+    bulletCooldown = BULLET_COOLDOWN;
+}
+
+void Player::updateBulletSkill(float dt) {
+    if (bulletCooldown > 0) {
+        bulletCooldown -= dt;
+        if (bulletCooldown < 0) bulletCooldown = 0;
+    }
+}
+
 void Player::checkBounds() {
-    int halfSize = getSize() / 2;
+    int halfSize = size / 2;
 
     if (position.x < halfSize) {
         position.x = halfSize;
