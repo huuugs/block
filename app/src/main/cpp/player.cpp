@@ -103,8 +103,9 @@ void Player::updatePhysics(float dt) {
 
 void Player::applyJoystickInput(Vector2 inputDirection) {
     // Joystick applies force, not direct velocity change
-    if (Vector2Length(inputDirection) < 0.01f) return;
-    
+    // FIX: Removed threshold check - small inputs should still apply force
+    // if (Vector2Length(inputDirection) < 0.01f) return;
+
     // Normalize input
     Vector2 dir = Vector2Normalize(inputDirection);
     
