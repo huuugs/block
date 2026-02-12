@@ -518,7 +518,7 @@ void UIManager::drawLevelSelect(const UserManager* userManager) {
 
     // Get max unlocked level from user data
     int maxUnlockedLevel = 1;  // At least level 1 is unlocked
-    const User* currentUser = getCurrentUser();
+    const User* currentUser = userManager ? userManager->getCurrentUser() : nullptr;
     if (currentUser) {
         maxUnlockedLevel = currentUser->maxLevelUnlocked;
     }

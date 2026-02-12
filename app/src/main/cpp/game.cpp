@@ -1101,7 +1101,7 @@ void Game::checkCollisions() {
                             // Unlock next level
                             modeManager->nextLevel();
                             particles->spawnTextPopup(player->getPosition(),
-                                TextFormat("LEVEL %d COMPLETE!", currentLevel));
+                                TextFormat("LEVEL %d COMPLETE!", currentLevel), {100, 255, 100, 255});
                             audio->playLevelUpSound();
 
                             // Update user stats
