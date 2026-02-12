@@ -9,12 +9,8 @@ ControlSystem::ControlSystem()
     , paused(false)
     , modeButtonPressed(false)
 {
-    // Joystick - INCREASED radius from 80 to 120 for better sensitivity
-    // IMPORTANT: Use proper initialization with radius 120
-    VirtualJoystick joystick = {{0, 0}, 120, {0, 0}, false, false, -1};
-
-    controls() = ControlSystem() {
-    // Joystick will be initialized with radius=120 in the constructor initializer list
+    // Joystick radius is now 120 (increased from 80) for better sensitivity
+    // Default initialization in VirtualJoystick constructor sets radius=120
 }
 
 ControlSystem::~ControlSystem() {
