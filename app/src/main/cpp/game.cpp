@@ -248,6 +248,11 @@ void Game::updatePlaying() {
 
     // Update player - physics-based movement
     Vector2 input = controls->getInputVector(player->getPosition());
+
+    // DEBUG: Log input being passed to player
+    TraceLog(LOG_INFO, "updatePlaying: input=%d,%d",
+            (int)(input.x * 1000), (int)(input.y * 1000));
+
     player->applyJoystickInput(input);
     player->update(deltaTime, bullets);
 

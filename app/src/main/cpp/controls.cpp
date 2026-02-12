@@ -114,12 +114,11 @@ void ControlSystem::updateJoystick() {
                 joystick.input = {delta.x / joystick.radius, delta.y / joystick.radius};
                 foundTouch = true;
 
-                // Debug: Always log joystick input for diagnosis (removed threshold check)
-                char logMsg[256];
-                sprintf(logMsg, "Joystick input: %f,%f (delta: %f,%f dist: %f)",
-                        (double)joystick.input.x, (double)joystick.input.y,
-                        (double)delta.x, (double)delta.y, (double)dist);
-                TraceLog(LOG_DEBUG, "%s", logMsg);
+                // Debug: Always log joystick input for diagnosis
+                // Use integer values (x1000) to avoid float formatting issues
+                TraceLog(LOG_INFO, "Joystick input: %d,%d (delta: %d,%d dist: %d)",
+                        (int)(joystick.input.x * 1000), (int)(joystick.input.y * 1000),
+                        (int)(delta.x), (int)(delta.y), (int)(dist));
                 break;
             }
         }
@@ -147,12 +146,10 @@ void ControlSystem::updateJoystick() {
                 joystick.origin = touchPos;  // Set origin at touch position
                 joystick.originSet = true;
                 joystick.input = {0, 0};  // Start with no input
-                // Use TextFormat for proper formatting
-                char logMsg[256];
-                sprintf(logMsg, "Joystick ACTIVATED: origin=%f,%f touchID=%d screen=%dx%d",
-                        (double)joystick.origin.x, (double)joystick.origin.y,
+                // Use integers to avoid float formatting issues
+                TraceLog(LOG_INFO, "Joystick ACTIVATED: origin=%d,%d touchID=%d screen=%dx%d",
+                        (int)(joystick.origin.x), (int)(joystick.origin.y),
                         joystick.touchPointId, SCREEN_WIDTH, SCREEN_HEIGHT);
-                TraceLog(LOG_INFO, "%s", logMsg);
                 break;  // Only handle one touch for joystick
             }
         }
