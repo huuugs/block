@@ -121,7 +121,7 @@ void ControlSystem::drawJoystick() {
     DrawCircleV(stickPos, 120 * 0.5f, {150, 150, 200, 200});
 
     // Draw outline circles for better visibility
-    DrawCircleLines(joystick.origin, 120, {100, 100, 150, 200});
+    DrawCircleLines((int)joystick.origin.x, (int)joystick.origin.y, 120, {100, 100, 150, 200});
 }
 
 void ControlSystem::drawPauseButton() {
