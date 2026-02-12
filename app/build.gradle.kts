@@ -26,10 +26,18 @@ android {
         }
     }
 
+    signingConfigs {
+        create("debug") {
+            storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
+            storePassword = "blockeater2024"
+            keyAlias = "blockeaterdebug"
+            keyPassword = "blockeater2024"
+        }
+    }
+
     buildTypes {
         debug {
-            // Debug build uses default debug keystore
-            // Android will automatically use ~/.android/debug.keystore
+            signingConfig = signingConfigs.getByName("debug")
         }
         release {
             isMinifyEnabled = false
