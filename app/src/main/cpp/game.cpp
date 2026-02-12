@@ -233,7 +233,6 @@ void Game::updateMenu() {
                 // Stop music before exiting
                 audio->playBackgroundMusic(false);
                 // Exit the game loop
-                CloseWindow();
                 break;
         }
 
