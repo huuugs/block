@@ -89,6 +89,14 @@ void ControlSystem::togglePause() {
 
 void ControlSystem::updateJoystick() {
     int touchCount = GetTouchPointCount();
+    
+    // DEBUG: Always log touch count to verify touch detection is working
+    static int lastTouchCount = -1;
+    if (touchCount != lastTouchCount) {
+        TraceLog(LOG_INFO, TextFormat("TOUCH DEBUG: touchCount=%d screen=%dx%d", 
+                touchCount, GetScreenWidth(), GetScreenHeight()));
+        lastTouchCount = touchCount;
+    }
 
     // If no touches, reset joystick
     if (touchCount == 0) {
@@ -102,6 +110,13 @@ void ControlSystem::updateJoystick() {
         return;
     }
 
+    // Log all touch positions for debugging
+    for (int i = 0; i < touchCount; i++) {
+        Vector2 pos = GetTouchPosition(i);
+        TraceLog(LOG_INFO, TextFormat("TOUCH %d: pos=%.0f,%.0f (half=%d)", 
+                i, pos.x, pos.y, SCREEN_WIDTH/2));
+    }
+
     // CRITICAL FIX: Always find the leftmost touch in left half of screen
     // This is more reliable than tracking by touch ID or index on Android
     int leftTouchIndex = -1;
@@ -110,10 +125,16 @@ void ControlSystem::updateJoystick() {
     for (int i = 0; i < touchCount; i++) {
         Vector2 pos = GetTouchPosition(i);
         // Find touch in left half that is leftmost
-        if (pos.x < SCREEN_WIDTH / 2 && pos.x < leftmostX) {
+        // CRITICAL: Use GetScreenWidth() for actual screen dimensions on Android
+        float halfScreen = GetScreenWidth() / 2.0f;
+        if (pos.x < halfScreen && pos.x < leftmostX) {
             leftmostX = pos.x;
             leftTouchIndex = i;
         }
+    }
+    
+    if (leftTouchIndex >= 0) {
+        TraceLog(LOG_INFO, TextFormat("Found left touch: index=%d x=%.0f", leftTouchIndex, leftmostX));
     }
 
     // If joystick is active, update it
@@ -147,7 +168,6 @@ void ControlSystem::updateJoystick() {
                     (int)(delta.x), (int)(delta.y), (int)(dist)));
         } else {
             // No touch in left half, keep joystick active but reset input
-            // This prevents sudden stops when finger briefly leaves left half
             joystick.input = {0, 0};
             TraceLog(LOG_INFO, "Joystick active but no left touch - input reset to 0,0");
         }
