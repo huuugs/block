@@ -78,6 +78,7 @@ class GameCamera;
 class Bullet;
 class SkillManager;
 class UserManager;
+class GameModeManager;
 
 // Main Game class
 class Game {
@@ -114,6 +115,7 @@ public:
     GameCamera* camera;
     SkillManager* skillManager;
     UserManager* userManager;
+    GameModeManager* modeManager;
 
 private:
     GameState state;
@@ -151,8 +153,8 @@ private:
     void startGame(GameMode newMode);
     void resetGame();
     void quickSave();  // Quick save during gameplay
-    bool hasRecentSave();  // Check if game was recently saved (for save spam prevention)
     float timeSinceLastSave;  // Time since last save
+    bool hasRecentSave;  // Track if game was recently saved (for save spam prevention)
 };
 
 } // namespace BlockEater

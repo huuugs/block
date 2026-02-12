@@ -132,7 +132,7 @@ public:
     void drawMainMenu();
     void drawPauseMenu();
     void drawGameOverMenu(int score, int level);
-    void drawLevelSelect();
+    void drawLevelSelect(const UserManager* userManager);
     void drawSettings();
     void drawLogs();
     void drawUserMenu(const UserManager* userManager);
@@ -155,8 +155,12 @@ public:
     int getUserMenuSelection() const { return userMenuSelection; }
     int getUserSelection() const { return userSelection; }
     int getDeleteUserConfirm() const { return deleteUserConfirm; }
+    int getUserToDelete() const { return userToDelete; }
     int getSelectedLevel() const { return selectedLevel; }
-    
+
+    void setDeleteConfirm(int confirm) { deleteUserConfirm = confirm; }
+    void setUserToDelete(int userIndex) { userToDelete = userIndex; }
+
     void clearSelections() {
         mainMenuSelection = -1;
         pauseMenuSelection = -1;

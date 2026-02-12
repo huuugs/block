@@ -27,6 +27,7 @@ Game::Game()
     , camera(nullptr)
     , skillManager(nullptr)
     , userManager(nullptr)
+    , modeManager(nullptr)
     , state(GameState::MENU)
     , previousState(GameState::MENU)
     , mode(GameMode::ENDLESS)
@@ -37,8 +38,8 @@ Game::Game()
     , deltaTime(0)
     , gameTime(0)
     , nameInputBuffer{0}  // Initialize empty string
-    , hasRecentSave(false)
     , timeSinceLastSave(0)
+    , hasRecentSave(false)
 {
 }
 
@@ -78,6 +79,10 @@ void Game::init() {
     // Initialize user manager
     userManager = new UserManager();
     userManager->init();
+
+    // Initialize mode manager
+    modeManager = new GameModeManager();
+    modeManager->init(mode);
 
     // Create player
     player = new Player();
@@ -192,6 +197,7 @@ void Game::shutdown() {
     delete assets;
     delete camera;
     delete skillManager;
+    delete modeManager;
 }
 
 void Game::updateMenu() {
@@ -275,7 +281,12 @@ void Game::updatePlaying() {
 
     // Update skill manager
     skillManager->update(deltaTime);
-    
+
+    // Update mode manager (for level mode logic)
+    if (modeManager) {
+        modeManager->update(deltaTime);
+    }
+
     // Process shield interactions (convex reflection, concave acceleration)
     skillManager->processShieldInteractions(player, enemies);
 
@@ -743,7 +754,7 @@ void Game::drawGameOver() {
 }
 
 void Game::drawLevelSelect() {
-    ui->draw(state, mode);
+    ui->drawLevelSelect(userManager);
 }
 
 void Game::startGame(GameMode newMode) {
@@ -751,6 +762,11 @@ void Game::startGame(GameMode newMode) {
     state = GameState::PLAYING;
     score = 0;
     gameTime = 0;
+
+    // Initialize mode manager with new mode
+    if (modeManager) {
+        modeManager->init(mode);
+    }
 
     // Reset player
     delete player;
@@ -1054,7 +1070,7 @@ void Game::checkCollisions() {
                 // Gain bullet skill if eating FLOATING enemy
                 if (enemy->getType() == EnemyType::FLOATING && !player->hasBulletSkill()) {
                     player->enableBulletSkill();
-                    particles->spawnTextPopup(playerPos, "BULLET SKILL!", {255, 255, 0, 255});
+                    particles->spawnTextPopup(player->getPosition(), "BULLET SKILL!", {255, 255, 0, 255});
                 }
                 
                 // Experience gain
@@ -1066,7 +1082,7 @@ void Game::checkCollisions() {
                 // Check for level up
                 int oldLevel = player->getLevel();
                 if (player->getLevel() > oldLevel) {
-                    particles->spawnLevelUp(playerPos, player->getLevel());
+                    particles->spawnLevelUp(player->getPosition(), player->getLevel());
                     audio->playLevelUpSound();
                 }
 
@@ -1081,7 +1097,7 @@ void Game::checkCollisions() {
                         if (currentLevel < 10) {
                             // Unlock next level
                             modeManager->nextLevel();
-                            particles->spawnTextPopup(playerPos,
+                            particles->spawnTextPopup(player->getPosition(),
                                 TextFormat("LEVEL %d COMPLETE!", currentLevel));
                             audio->playLevelUpSound();
 
@@ -1213,14 +1229,14 @@ void Game::updateUserMenu() {
             ui->resetTransition();
         } else if (deleteConfirm == 1) {
             // Confirm delete user
-            int userToDelete = ui->userToDelete;  // Get stored user index
+            int userToDelete = ui->getUserToDelete();  // Get stored user index
             if (userToDelete >= 0 && userToDelete < UserManager::MAX_USERS) {
                 userManager->deleteUser(userToDelete);
                 audio->playButtonClickSound();
                 ui->resetTransition();
                 // Clear delete confirmation
-                ui->deleteUserConfirm = -1;
-                ui->userToDelete = -1;
+                ui->setDeleteConfirm(-1);
+                ui->setUserToDelete(-1);
             }
         }
 
@@ -1300,7 +1316,7 @@ void Game::quickSave() {
         hasRecentSave = true;
 
         // Show save notification
-        particles->spawnTextPopup(playerPos(), "GAME SAVED!", {100, 255, 100, 255});
+        particles->spawnTextPopup(player->getPosition(), "GAME SAVED!", {100, 255, 100, 255});
         audio->playButtonClickSound();
 
         TraceLog(LOG_INFO, "Game saved successfully");

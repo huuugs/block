@@ -493,7 +493,7 @@ void UIManager::drawGameOverMenu(int score, int level) {
     }
 }
 
-void UIManager::drawLevelSelect() {
+void UIManager::drawLevelSelect(const UserManager* userManager) {
     // Ensure raygui uses custom font for Chinese text rendering
     if (useCustomFont && mainFont != nullptr) {
         GuiSetFont(*mainFont);
@@ -1017,9 +1017,9 @@ void UIManager::drawUserMenu(const UserManager* userManager) {
             DrawRectangleLinesEx(statsButton, 1, currentTheme->accent);
             drawTextWithFont("?", (int)(statsButton.x + 8), (int)(statsButton.y + 2), 14, WHITE);
 
-            // Delete button (small red X button)
+            // Delete button (small red X button) - declare outside if for use in click detection
+            Rectangle deleteButton = {centerX + 230, y + 5, 20, 20};
             if (currentUser != user) {  // Can't delete current user
-                Rectangle deleteButton = {centerX + 230, y + 5, 20, 20};
                 DrawRectangleRec(deleteButton, {200, 50, 50, 200});
                 DrawRectangleLinesEx(deleteButton, 1, {255, 100, 100, 255});
                 drawTextWithFont("X", (int)(deleteButton.x + 5), (int)(deleteButton.y + 2), 16, WHITE);
@@ -1239,9 +1239,7 @@ void UIManager::drawDeleteConfirm(const UserManager* userManager, int userIndex)
     drawTextWithFont(title, centerX - titleWidth / 2, 150, 32, {255, 100, 100, 255});
 
     // Confirmation message
-    char msgText[128];
-    snprintf(msgText, sizeof(msgText),
-             getText("Are you sure you want to delete user:", "确定要删除用户吗?"));
+    const char* msgText = getText("Are you sure you want to delete user:", "确定要删除用户吗?");
     int msgWidth = measureTextWithFont(msgText, 20);
     drawTextWithFont(msgText, centerX - msgWidth / 2, 220, 20, currentTheme->text);
 
