@@ -13,9 +13,9 @@ struct VirtualJoystick {
     Vector2 input;
     bool active;
     bool originSet;  // Track if origin has been set for dynamic positioning
-    int touchId;
+    int touchPointId;  // Actual touch point ID from GetTouchPointId()
 
-    VirtualJoystick() : origin{0, 0}, radius(80), input{0, 0}, active(false), originSet(false), touchId(-1) {}
+    VirtualJoystick() : origin{0, 0}, radius(80), input{0, 0}, active(false), originSet(false), touchPointId(-1) {}
 };
 
 class ControlSystem {

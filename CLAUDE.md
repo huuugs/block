@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Block Eater is a raylib-based Android game written in C++17. It features a block-eating gameplay mechanic with multiple game modes, procedural audio, touch controls, multi-language support (English/Chinese), and a user system with persistent statistics.
+Block Eater is a raylib-based Android game written in C++17. It features a block-eating gameplay mechanic with multiple game modes, procedural audio, touch controls, multi-language support (English/Chinese), a user system with persistent statistics, and physics-based movement.
 
 ## Build Commands
 
@@ -43,8 +43,9 @@ When switching states, always call `ui->resetTransition()` to prevent screen fla
 ### Code Structure
 All game code lives in `app/src/main/cpp/`:
 - `game.h/cpp` - Main game class, state machine, game loop, entity management
-- `player.h/cpp` - Player entity with 6 progression levels
-- `enemy.h/cpp` - Four enemy types (Floating, Chasing, Stationary, Bouncing)
+- `player.h/cpp` - Player entity with 15 progression levels, physics-based movement
+- `enemy.h/cpp` - Four enemy types (Floating, Chasing, Stationary, Bouncing) with physics
+- `bullet.h/cpp` - Projectile system for shooting skill
 - `ui.h/cpp` - Menu system, HUD, multi-language support, themes, log viewer
 - `audio.h/cpp` - Procedural 8-bit sound generation
 - `modes.h/cpp` - Game mode logic (Endless, Level, Time Challenge)
@@ -57,6 +58,29 @@ All game code lives in `app/src/main/cpp/`:
 
 ### Namespace
 All game code uses `BlockEater::` namespace.
+
+### Physics System (Important!)
+The game uses a physics-based movement system with rigid body collision:
+
+**Player Physics:**
+- Movement uses `applyForce()` and acceleration-based steering
+- `applyJoystickInput()` applies force toward joystick direction
+- `mass` is calculated from size (volume-based: `size * size * size`)
+- Velocity and acceleration are managed per-frame
+- Level affects combat stats (health, armor), not size
+
+**Enemy Physics:**
+- Same force-based movement as player
+- `applyRigidBodyCollision()` handles bouncing between entities
+- Collision response uses momentum conservation: `v1' = v1 - 2*m2/(m1+m2) * dot(v1-v2,n) * n`
+- `applyBouncingDamage()` handles BOUNCING type's special high-damage collisions
+
+**Critical: Vector2 Negation**
+raylib's `Vector2` does NOT support unary minus operator. Always use:
+```cpp
+Vector2 negNormal = (Vector2){-normal.x, -normal.y};
+```
+Do NOT use `-normal` - this causes compilation errors.
 
 ### Raylib Integration
 - Raylib is built as a static library during CI with `c++_shared` STL
@@ -77,6 +101,24 @@ The project is configured for `arm64-v8a` only. The 32-bit build is disabled due
 - Uses C++17 features
 - Narrowing conversions in initializer lists require explicit casts (e.g., `static_cast<unsigned int>()`)
 - raylib headers must be included as `#include "raylib.h"` (not `<raylib.h>`)
+
+## APK Signing Configuration
+
+The project uses a **fixed signing keystore** stored in GitHub Secrets to ensure consistent APK signatures for upgrade installation.
+
+### Local Development
+For local builds, the signing config in `build.gradle.kts` expects:
+- Keystore path: `~/.android/debug.keystore`
+- Store password: `blockeater2024`
+- Key alias: `blockeaterdebug`
+- Key password: `blockeater2024`
+
+### CI/CD Configuration
+- GitHub Secret: `DEBUG_KEYSTORE_BASE64` (base64-encoded keystore)
+- Workflow decodes keystore to `~/.android/debug.keystore` before building
+- `build.gradle.kts` uses `blockeaterDebug` signingConfig (not `debug` to avoid conflict with Android Gradle Plugin's default)
+
+**Important**: The signing config name is `blockeaterDebug`, not `debug`, because AGP automatically creates a `debug` signingConfig.
 
 ## Critical: Chinese Font Support
 
@@ -122,7 +164,7 @@ The `allChineseText` string in `assets.cpp:241-405` contains ~3500 common Chines
 - `ui.cpp:814-834` - `drawTextWithFont()` and `measureTextWithFont()` helpers
 
 ### Important Notes
-- Font files are included via `build.gradle.kts` line 56: `assets.srcDirs("src/main/cpp/fonts")`
+- Font files are included via `build.gradle.kts` line 64: `assets.srcDirs("src/main/cpp/fonts")`
 - On Android, fonts are accessed from APK assets, not filesystem
 - `SetTraceLogCallback` redirects all raylib logs to in-game log viewer
 - `useCustomFont` flag in `UIManager` indicates if font loaded successfully
@@ -168,7 +210,8 @@ The project uses Android NativeActivity framework with raylib. When modifying na
 
 5. **build.gradle.kts**:
    - Must specify `-DANDROID_STL=c++_shared` for C++ projects
-   - Line 52: `assets.srcDirs("src/main/cpp/fonts")` includes fonts in APK
+   - Line 64: `assets.srcDirs("src/main/cpp/fonts")` includes fonts in APK
+   - Signing config named `blockeaterDebug` to avoid AGP conflict
 
 These must all match or the app will crash on startup with "Unable to find native library" errors.
 
@@ -352,6 +395,14 @@ Background texture is loaded in `game.cpp:51` and drawn with `drawBackground()`.
 ### Fixed: Skills and Direction Cannot Respond Simultaneously
 **Problem**: Using joystick prevented skill activation
 **Solution**: Changed from checking `GetTouchPosition(0)` to iterating all touch points (game.cpp:291-347)
+
+### Fixed: APK Signing Inconsistency
+**Problem**: Each CI build used different keystore, preventing upgrade installation
+**Solution**: Use fixed keystore stored in GitHub Secrets (`DEBUG_KEYSTORE_BASE64`)
+
+### Fixed: Vector2 Unary Minus Compilation Error
+**Problem**: Using `-normal` caused "invalid argument type 'Vector2' to unary expression"
+**Solution**: Use manual negation `(Vector2){-normal.x, -normal.y}` instead
 
 ## Adding New Content
 
