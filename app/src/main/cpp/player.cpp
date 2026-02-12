@@ -268,7 +268,8 @@ void Player::addExperience(int exp) {
 void Player::levelUp() {
     if (level < MAX_LEVEL) {
         level++;
-        experienceToNextLevel = 50 * level * level;
+        // Reduced experience requirement: 20 * level * level instead of 50 * level * level
+        experienceToNextLevel = 20 * level * level;
 
         // Restore health on level up
         int maxHp = getMaxHealth();
@@ -276,7 +277,7 @@ void Player::levelUp() {
 
         // Restore potential energy
         potentialEnergy = maxKineticEnergy;
-        
+
         // Update stats for new level
         updateStatsForSize();
     }

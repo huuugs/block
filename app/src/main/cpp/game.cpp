@@ -490,34 +490,17 @@ void Game::updateSettings() {
             case 1:  // Next Theme
                 ui->cycleTheme();
                 break;
-            case 2:  // Toggle Control Mode
-                controlMode = (controlMode == ControlMode::VIRTUAL_JOYSTICK)
-                    ? ControlMode::TOUCH_FOLLOW
-                    : ControlMode::VIRTUAL_JOYSTICK;
-                ui->setControlMode(controlMode);  // Update UI display
-                controls->setMode(controlMode);   // Update controls
-                break;
-            case 3:  // Back (was previous case 3)
-                state = previousState;
-                ui->resetTransition();
-                break;
-            case 4:  // Toggle Mute
+            case 2:  // Toggle Mute
                 ui->toggleMute();
                 audio->setMuted(ui->isMuted());
                 audio->setMasterVolume(ui->getMasterVolume());
                 break;
-            case 5:  // Back (new position)
-                state = previousState;
-                ui->resetTransition();
-                break;
-            case 6:  // View Logs
+            case 3:  // View Logs
                 ui->setCurrentPanel(MenuPanel::LOGS);
                 break;
-            case 7:  // Cycle Font
-                ui->cycleFont();
-                // Reload fonts immediately
-                assets->LoadFontByType(static_cast<int>(ui->getFontType()));
-                ui->reloadFonts(&assets->GetPixelFont(), &assets->GetSmallFont());
+            case 4:  // Back
+                state = previousState;
+                ui->resetTransition();
                 break;
         }
 

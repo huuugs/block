@@ -74,14 +74,9 @@ void UIManager::init(Font* mFont, Font* sFont) {
 
     // Auto-detect system language on Android
     #if defined(PLATFORM_ANDROID)
-    // Use JNI to get system locale
-    // Default to Chinese if system locale is zh, otherwise English
-    // This is a simple check - in production you'd want full locale support
-    const char* locale = getenv("LANG");  // Some Android environments set this
-    if (locale && (strstr(locale, "zh") || strstr(locale, "CN"))) {
-        language = Language::CHINESE;
-    }
-    // Note: For full Android locale detection, you'd need JNI calls to Java
+    // For Android, default to Chinese for better user experience
+    // Users can still toggle in settings if needed
+    language = Language::CHINESE;
     #endif
 
     // CRITICAL: Set up raylib log callback to redirect all TraceLog to game log viewer
@@ -336,41 +331,6 @@ void UIManager::drawMainMenu() {
         GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
     }
 
-    // TEST: Draw Chinese characters directly at top of screen
-    if (mainFont != nullptr && mainFont->glyphCount > 100) {
-        // Test 1: ASCII (should work)
-        DrawTextEx(*mainFont, "TEST ASCII", (Vector2){10, 10}, 24, 2, GREEN);
-
-        // Test 2: Show first 10 Chinese glyphs that were actually loaded
-        int displayY = 40;
-        int chineseShown = 0;
-
-        for (int i = 95; i < mainFont->glyphCount && chineseShown < 10; i++) {
-            int charValue = mainFont->glyphs[i].value;
-            if (charValue > 127) {
-                // Draw the character using its Unicode value
-                char str[5];
-                int utf8Len = 0;
-                // Convert Unicode to UTF-8
-                if (charValue <= 0x7FF) {
-                    str[0] = 0xC0 | (charValue >> 6);
-                    str[1] = 0x80 | (charValue & 0x3F);
-                    utf8Len = 2;
-                } else if (charValue <= 0xFFFF) {
-                    str[0] = 0xE0 | (charValue >> 12);
-                    str[1] = 0x80 | ((charValue >> 6) & 0x3F);
-                    str[2] = 0x80 | (charValue & 0x3F);
-                    utf8Len = 3;
-                }
-                str[utf8Len] = '\0';
-
-                DrawTextEx(*mainFont, str, (Vector2){10, (float)displayY}, 20, 1, YELLOW);
-                displayY += 25;
-                chineseShown++;
-            }
-        }
-    }
-
     // Animated title
     const char* title = getText("BLOCK EATER", "方块吞噬者");
     int titleFontSize = 60;
@@ -607,45 +567,19 @@ void UIManager::drawSettings() {
     // Theme setting
     float themeY = startY + spacing;
     drawTextWithFont(getText("Theme:", "主题:"), (int)labelX, (int)(themeY + 15), 20, currentTheme->text);
-    
+
     // Theme name button
     if (drawButton(valueX, themeY, buttonWidth, buttonHeight, currentTheme->name)) {
         settingsSelection = 1;  // Next theme
     }
-    
+
     // Theme cycle button
     if (drawButton(valueX + buttonWidth + 20, themeY, 80.0f, buttonHeight, ">")) {
         cycleTheme();
     }
 
-    // Control mode setting
-    float controlY = startY + spacing * 2;
-    drawTextWithFont(getText("Control:", "控制:"), (int)labelX, (int)(controlY + 15), 20, currentTheme->text);
-
-    // Show current control mode
-    const char* controlText = (currentControlMode == ControlMode::VIRTUAL_JOYSTICK)
-        ? getText("Joystick", "摇杆")
-        : getText("Touch Follow", "触摸跟随");
-    if (drawButton(valueX, controlY, buttonWidth, buttonHeight, controlText)) {
-        settingsSelection = 2;  // Toggle control mode
-    }
-
-    // Font setting
-    float fontY = startY + spacing * 3;
-    drawTextWithFont(getText("Font:", "字体:"), (int)labelX, (int)(fontY + 15), 20, currentTheme->text);
-
-    // Show current font
-    if (drawButton(valueX, fontY, buttonWidth, buttonHeight, getFontName())) {
-        settingsSelection = 7;  // Cycle font
-    }
-
-    // Font cycle button
-    if (drawButton(valueX + buttonWidth + 20, fontY, 80.0f, buttonHeight, ">")) {
-        cycleFont();
-    }
-
     // Volume sliders (interactive)
-    float volumeY = startY + spacing * 4;
+    float volumeY = startY + spacing * 2;
     drawTextWithFont(getText("Volume:", "音量:"), (int)labelX, (int)(volumeY + 15), 20, currentTheme->text);
 
     // Volume bar background
@@ -676,20 +610,20 @@ void UIManager::drawSettings() {
     const char* muteText = m_isMuted ? getText("Unmute", "取消静音") : getText("Mute", "静音");
     float muteX = valueX + 320;
     if (drawButton(muteX, volumeY, 80.0f, 20, muteText)) {
-        settingsSelection = 4;  // Toggle mute
+        settingsSelection = 2;  // Toggle mute
     }
 
     // View Logs button
-    float logsY = startY + spacing * 5;
+    float logsY = startY + spacing * 3;
     if (drawButton(valueX, logsY, buttonWidth, buttonHeight, getText("View Logs", "查看日志"))) {
-        settingsSelection = 6;  // View logs
+        settingsSelection = 3;  // View logs
     }
 
     // Back button at bottom
-    float backY = 620.0f;
+    float backY = 520.0f;
     if (drawButton((float)(SCREEN_WIDTH / 2) - 100, backY, 200.0f, 50.0f,
                    getText("BACK", "返回"))) {
-        settingsSelection = 5;  // Back
+        settingsSelection = 4;  // Back
     }
 }
 

@@ -178,13 +178,18 @@ Texture2D AssetManager::GeneratePixelBackground() {
         }
     }
 
-    // Add random stars with varying brightness
+    // Add random stars with varying brightness and twinkling effect
     const int numStars = 200;
     for (int i = 0; i < numStars; i++) {
         int x = rand() % width;
         int y = rand() % height;
         int starSize = 1 + (rand() % 2);  // 1-2 pixels
         int brightness = 150 + (rand() % 106);  // 150-255
+
+        // Add twinkling effect: some stars are brighter for variation
+        if (rand() % 3 == 0) {
+            brightness = 200 + (rand() % 56);  // Extra bright twinkling stars
+        }
 
         for (int dy = 0; dy < starSize && y + dy < height; dy++) {
             for (int dx = 0; dx < starSize && x + dx < width; dx++) {
