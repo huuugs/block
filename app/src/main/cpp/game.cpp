@@ -606,10 +606,11 @@ void Game::drawPlaying() {
         Vector2 shieldDir = skillManager->getShieldDirection();
         int shieldLevel = skillManager->getShieldLevel();
 
-        // Draw arc shield (45° angle)
+        // Draw arc shield (45° angle) - DrawCircleSector uses degrees
         float shieldRadius = 80.0f;
-        float startAngle = atan2f(shieldDir.y, shieldDir.x) - 22.5f * DEG2RAD;
-        float endAngle = atan2f(shieldDir.y, shieldDir.x) + 22.5f * DEG2RAD;
+        float baseAngle = atan2f(shieldDir.y, shieldDir.x) * RAD2DEG;  // Convert rad to deg
+        float startAngle = baseAngle - 22.5f;
+        float endAngle = baseAngle + 22.5f;
 
         // Pulsing shield effect
         float pulse = sinf(GetTime() * 8.0f) * 0.2f + 1.0f;
@@ -683,11 +684,11 @@ void Game::drawPlaying() {
         ui->drawTimer(timeRemaining);
     }
 
-    // Draw FPS counter (top-left corner)
+    // Draw FPS counter (top-right corner, next to pause button)
     int fps = (int)GetFPS();
     char fpsText[32];
     sprintf(fpsText, "FPS: %d", fps);
-    DrawText(fpsText, 10, 10, 16, {255, 255, 255, 200});
+    DrawText(fpsText, SCREEN_WIDTH - 160, 45, 16, {255, 255, 255, 200});
 
     // Draw skill buttons
     skillManager->draw();
@@ -919,6 +920,53 @@ void Game::checkCollisions() {
             bulletIt = bullets.erase(bulletIt);
         } else {
             ++bulletIt;
+        }
+    }
+
+    // Check shield-enemy collisions (shield blocks enemies)
+    if (skillManager->isShieldActive()) {
+        Vector2 shieldPos = skillManager->getShieldPosition();
+        Vector2 shieldDir = skillManager->getShieldDirection();
+        float shieldRadius = 80.0f;
+        float baseAngle = atan2f(shieldDir.y, shieldDir.x) * RAD2DEG;
+        
+        for (auto* enemy : enemies) {
+            if (!enemy->isAlive()) continue;
+            
+            Vector2 enemyPos = enemy->getPosition();
+            int enemySize = enemy->getSize();
+            
+            // Calculate distance from enemy to shield center
+            float dist = Vector2Length(enemyPos - shieldPos);
+            float combinedRadius = shieldRadius + enemySize / 2.0f;
+            
+            if (dist < combinedRadius) {
+                // Calculate angle from shield center to enemy
+                float angleToEnemy = atan2f(enemyPos.y - shieldPos.y, enemyPos.x - shieldPos.x) * RAD2DEG;
+                
+                // Normalize angles to -180 to 180 range for comparison
+                float angleDiff = angleToEnemy - baseAngle;
+                while (angleDiff > 180) angleDiff -= 360;
+                while (angleDiff < -180) angleDiff += 360;
+                
+                // Check if enemy is within 45 degree shield arc (±22.5 degrees)
+                if (fabs(angleDiff) <= 22.5f) {
+                    // Enemy hit the shield - push it back
+                    Vector2 pushDir = Vector2Normalize(enemyPos - shieldPos);
+                    enemy->setPosition(shieldPos + pushDir * (shieldRadius + enemySize / 2.0f + 5.0f));
+                    
+                    // Deal damage to enemy (shield level * 10)
+                    int shieldDamage = skillManager->getShieldLevel() * 10;
+                    enemy->takeDamage(shieldDamage);
+                    
+                    // Spawn hit effect
+                    particles->spawnPixelExplosion(enemyPos, {100, 255, 100, 255}, 5);
+                    particles->spawnDamageNumber(enemyPos, shieldDamage, true);
+                    
+                    // Play shield hit sound
+                    audio->playHitSound();
+                }
+            }
         }
     }
 

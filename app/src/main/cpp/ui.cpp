@@ -709,8 +709,8 @@ void UIManager::drawHUD(const Player* player) {
     const char* energyLabel = getText("Energy", "能量");
     drawTextWithFont(energyLabel, 5, 37, 10, {200, 200, 255, 255});
 
-    // Experience bar with label
-    drawExpBar(240, 10, 300, 20, 0, 100, {50, 200, 100, 255});
+    // Experience bar with label (below energy bar)
+    drawExpBar(20, 55, 200, 12, player->getExperience(), player->getExperienceToNextLevel(), {50, 200, 100, 255});
 }
 
 void UIManager::drawHealthBar(float x, float y, float width, float height, int current, int max, Color color) {
@@ -751,15 +751,22 @@ void UIManager::drawExpBar(float x, float y, float width, float height, int curr
     
     // XP fill
     float percentage = (float)current / (float)max;
+    if (percentage > 1.0f) percentage = 1.0f;
     int fillWidth = (int)(width * percentage);
     DrawRectangle((int)x, (int)y, fillWidth, (int)height, color);
     
     // Border
     DrawRectangleLines((int)x, (int)y, (int)width, (int)height, {200, 200, 200, 100});
     
-    // Label
+    // Label on the left side
     const char* label = getText("XP", "经验");
-    drawTextWithFont(label, (int)x - 30, (int)y + 2, 14, WHITE);
+    drawTextWithFont(label, (int)x - 25, (int)y, 10, {200, 255, 200, 255});
+    
+    // XP value text in the center of bar
+    char xpText[32];
+    sprintf(xpText, "%d/%d", current, max);
+    int textWidth = measureTextWithFont(xpText, 10);
+    drawTextWithFont(xpText, (int)(x + width / 2 - textWidth / 2), (int)(y + 1), 10, WHITE);
 }
 
 void UIManager::drawScore(int score) {

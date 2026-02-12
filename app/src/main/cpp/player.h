@@ -56,6 +56,8 @@ public:
     int getMaxHealth() const { return LEVEL_STATS[level - 1].maxHealth; }
     int getArmor() const { return LEVEL_STATS[level - 1].armor; }
     int getLevel() const { return level; }
+    int getExperience() const { return experience; }
+    int getExperienceToNextLevel() const { return experienceToNextLevel; }
     float getEnergy() const { return energy; }
     float getMaxEnergy() const { return maxEnergy; }
     Color getColor() const { return LEVEL_STATS[level - 1].color; }
