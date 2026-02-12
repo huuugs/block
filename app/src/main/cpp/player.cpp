@@ -105,6 +105,10 @@ void Player::applyJoystickInput(Vector2 inputDirection) {
     // Joystick applies force, not direct velocity change
     // FIX: Removed threshold check - small inputs should still apply force
 
+    // DEBUG: Log input vector details
+    printf("JOYSTICK: input=(%.2f,%.2f) len=%.2f\n",
+             inputDirection.x, inputDirection.y, Vector2Length(inputDirection));
+
     // Normalize input
     Vector2 dir = Vector2Normalize(inputDirection);
     
@@ -125,7 +129,11 @@ void Player::applyJoystickInput(Vector2 inputDirection) {
     
     // Apply force (F = ma, so a = F/m)
     applyForce(steering);
-    
+
+    // DEBUG: Log force application
+    printf("FORCE: steering=(%.2f,%.2f) fdiv=(%.2f,%.2f) force=(%.2f,%.2f)\n",
+             steering.x, steering.y, (float)(steering.x / mass), (float)(steering.y / mass));
+
     // Consume potential energy to apply force
     float energyCost = Vector2Length(steering) * 0.1f;
     if (potentialEnergy >= energyCost) {
