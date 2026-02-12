@@ -105,34 +105,40 @@ void Player::applyJoystickInput(Vector2 inputDirection) {
     // Joystick applies force, not direct velocity change
     // FIX: Removed threshold check - small inputs should still apply force
 
-    // DEBUG: Log input vector details
-    printf("JOYSTICK: input=(%.2f,%.2f) len=%.2f\n",
-             inputDirection.x, inputDirection.y, Vector2Length(inputDirection));
+    // DEBUG: Log input vector details using TraceLog for Android logcat visibility
+    float inputLen = Vector2Length(inputDirection);
+    TraceLog(LOG_DEBUG, "JOYSTICK: input=(%.2f,%.2f) len=%.2f",
+             inputDirection.x, inputDirection.y, inputLen);
+
+    // Don't apply force if input is essentially zero
+    if (inputLen < 0.01f) {
+        return;
+    }
 
     // Normalize input
     Vector2 dir = Vector2Normalize(inputDirection);
-    
+
     // Calculate desired velocity based on max speed
     float maxSpeed = getMoveSpeed();
     Vector2 desiredVelocity = {dir.x * maxSpeed, dir.y * maxSpeed};
-    
+
     // Steering force = desired - current
-    Vector2 steering = {desiredVelocity.x - velocity.x, 
+    Vector2 steering = {desiredVelocity.x - velocity.x,
                         desiredVelocity.y - velocity.y};
-    
+
     // Limit steering force based on level
     float maxForce = LEVEL_STATS[level - 1].maxForce;
     float steerMag = Vector2Length(steering);
     if (steerMag > maxForce) {
         steering = Vector2Normalize(steering) * maxForce;
     }
-    
+
     // Apply force (F = ma, so a = F/m)
     applyForce(steering);
 
     // DEBUG: Log force application
-    printf("FORCE: steering=(%.2f,%.2f) fdiv=(%.2f,%.2f) force=(%.2f,%.2f)\n",
-             steering.x, steering.y, (float)(steering.x / mass), (float)(steering.y / mass));
+    TraceLog(LOG_DEBUG, "FORCE: steering=(%.2f,%.2f) fdiv=(%.2f,%.2f) accel=(%.2f,%.2f)",
+             steering.x, steering.y, steering.x / mass, steering.y / mass, acceleration.x, acceleration.y);
 
     // Consume potential energy to apply force
     float energyCost = Vector2Length(steering) * 0.1f;

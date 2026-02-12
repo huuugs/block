@@ -190,99 +190,13 @@ Sound AudioGenerator::GenerateButtonClickSound() {
 }
 
 Music AudioGenerator::GenerateBackgroundMusic() {
-    // Generate space-themed 8-bit background music
-    int sampleRate = 44100;
-    float duration = 32.0f;  // 32 seconds looping
-    int samples = (int)(sampleRate * duration);
+    // FIX: Background music generation disabled due to crash with LoadMusicStreamFromMemory
+    // The function requires proper encoded audio data (OGG/MP3), not raw PCM
+    // Return empty music structure - music will be checked before use
+    TraceLog(LOG_WARNING, "Background music generation disabled - using procedural SFX only");
 
-    // Calculate data size (16-bit = 2 bytes per sample, mono = 1 channel)
-    int dataSize = samples * 2;
-    unsigned char* dataBuffer = new unsigned char[dataSize];
-
-    // Space music notes - ambient, atmospheric
-    // Using a pentatonic scale for spacey feel: C4, D4, E4, G4, A4
-    int baseNotes[] = {262, 294, 330, 392, 440};  // C4, D4, E4, G4, A4
-    int bassNotes[] = {131, 147, 165, 196, 220};   // C3, D3, E3, G3, A3 (octave down)
-
-    // Music structure: 8 measures, 4 beats each
-    const float BEAT_DURATION = 0.5f;  // 120 BPM
-    const int BEATS_PER_PHRASE = 16;
-
-    for (int i = 0; i < samples; i++) {
-        float t = (float)i / sampleRate;
-        float sample = 0.0f;
-
-        // Determine current beat in phrase
-        int beatInPhrase = (int)(t / BEAT_DURATION) % BEATS_PER_PHRASE;
-
-        // Melody: Simple spacey arpeggio pattern
-        int melodyPattern[] = {0, 2, 4, 2, 0, 4, 2, 0, 3, 4, 2, 1, 0, 1, 2, 4};
-        int noteIndex = melodyPattern[beatInPhrase];
-        int melodyFreq = baseNotes[noteIndex % 5];
-
-        // Melody volume envelope - pulsing
-        float melodyEnvelope = 0.15f + 0.05f * sinf(t * 2.0f);
-
-        // Square wave for melody (8-bit sound)
-        float vibrato = 1.0f + 0.02f * sinf(t * 8.0f);
-        float melodyWave = (sinf(2.0f * PI * melodyFreq * vibrato * t) > 0) ? 1.0f : -1.0f;
-
-        // Bass pattern: slower, deeper notes
-        int bassPattern[] = {0, 0, 4, 4, 0, 3, 2, 2, 0, 0, 4, 4, 2, 1, 0, 0};
-        int bassNoteIndex = bassPattern[beatInPhrase];
-        int bassFreq = bassNotes[bassNoteIndex % 5];
-
-        // Triangle wave for bass (softer)
-        float bassPhase = fmodf(t * bassFreq, 1.0f);
-        float bassWave = fabsf(2.0f * bassPhase - 1.0f) * 2.0f - 1.0f;
-        float bassEnvelope = 0.2f;
-
-        // Pad/ambient layer - slow sine wave with harmonics
-        float padFreq = 196.0f;  // G3
-        float padWave = sinf(2.0f * PI * padFreq * t) * 0.08f +
-                       sinf(2.0f * PI * padFreq * 1.5f * t) * 0.04f +
-                       sinf(2.0f * PI * padFreq * 2.0f * t) * 0.02f;
-
-        // Arpeggiator effect on beats
-        float arpWave = 0;
-        if (beatInPhrase % 2 == 0) {
-            float arpFreq = 523.0f;  // C5
-            float arpData = fmodf(t * 8.0f, 1.0f);
-            arpWave = (sinf(2.0f * PI * arpFreq * t) > 0) ? 1.0f : -1.0f;
-            arpWave *= 0.03f * (1.0f - arpData);  // Quick decay
-        }
-
-        // Mix all layers
-        sample = melodyWave * melodyEnvelope +
-                 bassWave * bassEnvelope +
-                 padWave +
-                 arpWave;
-
-        // Apply overall song envelope (fade in/out at ends)
-        float songEnvelope = 1.0f;
-        if (t < 2.0f) {
-            songEnvelope = t / 2.0f;  // Fade in
-        } else if (t > duration - 2.0f) {
-            songEnvelope = (duration - t) / 2.0f;  // Fade out
-        }
-
-        // Master volume reduction
-        sample *= songEnvelope * 0.25f;
-
-        // Convert to 16-bit PCM and store in little-endian format
-        short sample16 = (short)(sample * 32767.0f);
-        dataBuffer[i * 2] = sample16 & 0xFF;           // Low byte
-        dataBuffer[i * 2 + 1] = (sample16 >> 8) & 0xFF;  // High byte
-    }
-
-    // Load music from memory buffer
-    // LoadMusicStreamFromMemory requires: fileType, data, dataSize
-    Music music = LoadMusicStreamFromMemory(".ogg", dataBuffer, dataSize);
-
-    // Clean up the data buffer (raylib makes its own copy)
-    delete[] dataBuffer;
-
-    return music;
+    Music emptyMusic = {0};
+    return emptyMusic;
 }
 
 // Shoot sound - high pitch laser
@@ -436,10 +350,10 @@ void AudioManager::init() {
     rotateSound = AudioGenerator::GenerateRotateSound();
 
     // Generate and load background music
-    // IMPORTANT: Don't check musicLoaded status - always try to play even if load might have failed
-    // The music might not load properly on some devices, so we try anyway
     bgMusic = AudioGenerator::GenerateBackgroundMusic();
-    TraceLog(LOG_INFO, "Background music generated, stream buffer: %p", bgMusic.stream.buffer);
+    // Check if music was actually loaded (stream.buffer should be non-null)
+    musicLoaded = (bgMusic.stream.buffer != nullptr);
+    TraceLog(LOG_INFO, "Background music %sloaded", musicLoaded ? "" : "NOT ");
 }
 
 void AudioManager::shutdown() {
@@ -499,8 +413,12 @@ void AudioManager::playRotateSound() {
 }
 
 void AudioManager::playBackgroundMusic(bool play) {
-    // IMPORTANT: Don't check musicLoaded - try to play anyway
-    // This allows game to attempt playing even if music load failed
+    // FIX: Only play/stop music if it was actually loaded
+    // This prevents crash when bgMusic.stream.buffer is null
+    if (!musicLoaded) {
+        return;  // Music not loaded, do nothing
+    }
+
     if (play && !musicPlaying) {
         PlayMusicStream(bgMusic);
         musicPlaying = true;

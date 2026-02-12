@@ -137,6 +137,10 @@ void ControlSystem::updateJoystick() {
         for (int i = 0; i < touchCount; i++) {
             Vector2 touchPos = GetTouchPosition(i);
 
+            // DEBUG: Log all touch positions
+            TraceLog(LOG_DEBUG, "Touch %d: pos=(%.0f,%.0f) screenHalf=%.0f",
+                     i, touchPos.x, touchPos.y, SCREEN_WIDTH / 2.0f);
+
             // Check if touch is in left half of screen
             if (touchPos.x < SCREEN_WIDTH / 2) {
                 joystick.active = true;
@@ -144,8 +148,9 @@ void ControlSystem::updateJoystick() {
                 joystick.origin = touchPos;  // Set origin at touch position
                 joystick.originSet = true;
                 joystick.input = {0, 0};  // Start with no input
-                TraceLog(LOG_INFO, "Joystick ACTIVATED: radius=%.0f origin=(%.0f,%.0f) touchID=%d",
-                         joystick.radius, joystick.origin.x, joystick.origin.y, joystick.touchPointId);
+                TraceLog(LOG_INFO, "Joystick ACTIVATED: radius=%.0f origin=(%.0f,%.0f) touchID=%d screen=%dx%d",
+                         joystick.radius, joystick.origin.x, joystick.origin.y, joystick.touchPointId,
+                         SCREEN_WIDTH, SCREEN_HEIGHT);
                 break;  // Only handle one touch for joystick
             }
         }
