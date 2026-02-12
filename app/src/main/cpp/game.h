@@ -150,6 +150,9 @@ private:
     void drawBackground();
     void startGame(GameMode newMode);
     void resetGame();
+    void quickSave();  // Quick save during gameplay
+    bool hasRecentSave();  // Check if game was recently saved (for save spam prevention)
+    float timeSinceLastSave;  // Time since last save
 };
 
 } // namespace BlockEater

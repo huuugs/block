@@ -37,6 +37,8 @@ Game::Game()
     , deltaTime(0)
     , gameTime(0)
     , nameInputBuffer{0}  // Initialize empty string
+    , hasRecentSave(false)
+    , timeSinceLastSave(0)
 {
 }
 
@@ -310,6 +312,7 @@ void Game::updatePlaying() {
 
     // Update game time
     gameTime += deltaTime;
+    timeSinceLastSave += deltaTime;
 
     // Update UI
     ui->update(deltaTime);
@@ -318,6 +321,12 @@ void Game::updatePlaying() {
     // CRITICAL FIX: Check ALL touch points, not just the first one
     // This allows using joystick (touch 0) and skills (touch 1) simultaneously
     int touchCount = GetTouchPointCount();
+
+    // Quick save: Check for F5 key or Esc key
+    int quickSaveKey = IsKeyPressed(KEY_F5) || IsKeyPressed(KEY_ESCAPE);
+    if (quickSaveKey && !hasRecentSave) {
+        quickSave();
+    }
 
     // Skill button area: bottom-right
     float buttonSize = 60.0f;
@@ -1272,4 +1281,28 @@ void Game::updateNameInput() {
 void Game::drawNameInput() {
     // Draw name input screen
     ui->drawNameInput(nameInputBuffer);
+}
+
+void Game::quickSave() {
+    // Quick save during gameplay
+    const float SAVE_COOLDOWN = 2.0f;  // Seconds between saves
+
+    // Check if enough time passed since last save
+    if (timeSinceLastSave < SAVE_COOLDOWN) {
+        // Update user stats with current game progress
+        User* user = userManager->getCurrentUser();
+        if (user) {
+            userManager->updateStats(mode, score, gameTime, player->getLevel());
+        }
+
+        // Reset save timer
+        timeSinceLastSave = 0;
+        hasRecentSave = true;
+
+        // Show save notification
+        particles->spawnTextPopup(playerPos(), "GAME SAVED!", {100, 255, 100, 255});
+        audio->playButtonClickSound();
+
+        TraceLog(LOG_INFO, "Game saved successfully");
+    }
 }
