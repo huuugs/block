@@ -1087,7 +1087,8 @@ void Game::checkCollisions() {
                 // Rigid body collision - both survive but bounce off each other
                 Vector2 normal = Vector2Normalize(playerPos - enemyPos);
                 player->applyRigidBodyCollision(enemy->getMass(), enemy->getVelocity(), normal);
-                enemy->applyRigidBodyCollision(player->getMass(), player->getVelocity(), -normal);
+                Vector2 negNormal = (Vector2){-normal.x, -normal.y};
+                enemy->applyRigidBodyCollision(player->getMass(), player->getVelocity(), negNormal);
                 
                 // Small damage on collision
                 int damage = enemySize / 5;
