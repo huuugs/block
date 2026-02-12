@@ -45,8 +45,24 @@ Vector2 ControlSystem::getInputVector() const {
 }
 
 Vector2 ControlSystem::getInputVector(Vector2 playerPos) const {
+    // Check keyboard input first (WASD or Arrow keys)
+    Vector2 keyboardInput = {0, 0};
+    if (IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) keyboardInput.y -= 1.0f;
+    if (IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) keyboardInput.y += 1.0f;
+    if (IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) keyboardInput.x -= 1.0f;
+    if (IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) keyboardInput.x += 1.0f;
+
+    // Normalize keyboard input if diagonal
+    if (Vector2Length(keyboardInput) > 0.1f) {
+        return Vector2Normalize(keyboardInput);
+    }
+
+    // Fall back to touch input
     if (mode == ControlMode::VIRTUAL_JOYSTICK) {
-        return joystick.input;
+        // Check if joystick has any meaningful input
+        if (Vector2Length(joystick.input) > 0.01f) {
+            return joystick.input;
+        }
     } else {
         // Touch follow mode - calculate direction from touch to player
         if (GetTouchPointCount() > 0) {
@@ -71,6 +87,48 @@ void ControlSystem::togglePause() {
 void ControlSystem::updateJoystick() {
     int touchCount = GetTouchPointCount();
 
+    // If no touches, reset joystick
+    if (touchCount == 0) {
+        joystick.active = false;
+        joystick.input = {0, 0};
+        joystick.touchId = -1;
+        joystick.originSet = false;
+        return;
+    }
+
+    // If joystick is active, try to find the same touch point by checking position
+    if (joystick.active && joystick.originSet) {
+        bool foundTouch = false;
+        for (int i = 0; i < touchCount; i++) {
+            Vector2 touchPos = GetTouchPosition(i);
+            // Check if this touch is near our origin (same touch point)
+            float distToOrigin = Vector2Length(touchPos - joystick.origin);
+            if (distToOrigin < joystick.radius * 1.5f) {
+                // This is our joystick touch
+                joystick.touchId = i;
+                foundTouch = true;
+
+                // Calculate input
+                Vector2 delta = touchPos - joystick.origin;
+                float dist = Vector2Length(delta);
+                if (dist > joystick.radius) {
+                    delta = Vector2Normalize(delta) * joystick.radius;
+                }
+                joystick.input = {delta.x / joystick.radius, delta.y / joystick.radius};
+                break;
+            }
+        }
+
+        if (!foundTouch) {
+            // Touch point lost, reset joystick
+            joystick.active = false;
+            joystick.input = {0, 0};
+            joystick.touchId = -1;
+            joystick.originSet = false;
+        }
+        return;
+    }
+
     // Check for new touch in left half of screen (dynamic positioning)
     if (joystick.touchId == -1) {
         for (int i = 0; i < touchCount; i++) {
@@ -82,38 +140,23 @@ void ControlSystem::updateJoystick() {
                 joystick.touchId = i;
                 joystick.origin = touchPos;  // Dynamic origin at touch position
                 joystick.originSet = true;
+                joystick.input = {0, 0};  // Start with no input
                 break;  // Only handle one touch for joystick
             }
         }
     }
 
-    // Update joystick input if active
-    if (joystick.active) {
-        // Check if our tracked touch still exists
-        bool touchFound = false;
-        if (joystick.touchId >= 0 && joystick.touchId < touchCount) {
-            // Touch ID is valid, check if touch position changed significantly
-            // (this indicates a new touch at the same index)
-            touchFound = true;
+    // Update joystick input if active (using stored touchId)
+    if (joystick.active && joystick.touchId >= 0 && joystick.touchId < touchCount) {
+        Vector2 touchPos = GetTouchPosition(joystick.touchId);
+        Vector2 delta = touchPos - joystick.origin;
 
-            Vector2 touchPos = GetTouchPosition(joystick.touchId);
-            Vector2 delta = touchPos - joystick.origin;
-
-            float dist = Vector2Length(delta);
-            if (dist > joystick.radius) {
-                delta = Vector2Normalize(delta) * joystick.radius;
-            }
-
-            joystick.input = {delta.x / joystick.radius, delta.y / joystick.radius};
+        float dist = Vector2Length(delta);
+        if (dist > joystick.radius) {
+            delta = Vector2Normalize(delta) * joystick.radius;
         }
 
-        // If touch not found or count changed unexpectedly, deactivate joystick
-        if (!touchFound || touchCount == 0) {
-            joystick.active = false;
-            joystick.input = {0, 0};
-            joystick.touchId = -1;
-            joystick.originSet = false;
-        }
+        joystick.input = {delta.x / joystick.radius, delta.y / joystick.radius};
     }
 }
 
