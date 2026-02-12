@@ -1085,7 +1085,6 @@ void UIManager::drawUserMenu(const UserManager* userManager) {
                 }
             }
         }
-        }
     }
 
     // Handle delete confirmation
