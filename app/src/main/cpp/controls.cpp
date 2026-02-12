@@ -60,6 +60,10 @@ Vector2 ControlSystem::getInputVector(Vector2 playerPos) const {
     // Fall back to touch input - FIX: Always return joystick input, remove threshold check
     // This ensures even small finger movements are registered
     if (mode == ControlMode::VIRTUAL_JOYSTICK) {
+        // DEBUG: Log what we're returning
+        TraceLog(LOG_INFO, "getInputVector: returning joystick input=%d,%d active=%d",
+                (int)(joystick.input.x * 1000), (int)(joystick.input.y * 1000),
+                joystick.active ? 1 : 0);
         return joystick.input;
     } else {
         // Touch follow mode - calculate direction from touch to player
@@ -69,6 +73,7 @@ Vector2 ControlSystem::getInputVector(Vector2 playerPos) const {
             return Vector2Normalize(touchPos - playerPos);
         }
     }
+    TraceLog(LOG_INFO, "getInputVector: returning ZERO");
     return {0, 0};
 }
 
