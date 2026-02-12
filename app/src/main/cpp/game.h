@@ -24,7 +24,8 @@ enum class GameState {
     GAME_OVER,
     LEVEL_SELECT,
     SETTINGS,
-    USER_MENU
+    USER_MENU,
+    NAME_INPUT  // User name input state
 };
 
 // Game modes
@@ -125,6 +126,7 @@ private:
     float deltaTime;
     float gameTime;
     Texture2D backgroundTexture;  // Space background texture
+    char nameInputBuffer[64];  // User name input buffer
 
     void updateMenu();
     void updatePlaying();
@@ -133,6 +135,7 @@ private:
     void updateLevelSelect();
     void updateSettings();
     void updateUserMenu();
+    void updateNameInput();
 
     void drawMenu();
     void drawPlaying();
@@ -140,6 +143,7 @@ private:
     void drawGameOver();
     void drawLevelSelect();
     void drawUserMenu();
+    void drawNameInput();
 
     void spawnEnemies();
     void checkCollisions();

@@ -136,6 +136,7 @@ public:
     void drawSettings();
     void drawLogs();
     void drawUserMenu(const UserManager* userManager);
+    void drawNameInput(const char* nameBuffer);  // Draw name input screen
 
     // Logging system for debugging
     static void logInfo(const char* message);

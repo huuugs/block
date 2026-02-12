@@ -997,4 +997,61 @@ void UIManager::drawUserMenu(const UserManager* userManager) {
     }
 }
 
+void UIManager::drawNameInput(const char* nameBuffer) {
+    // Dark overlay background
+    drawMenuBackground();
+
+    // Ensure raygui uses custom font for Chinese text rendering
+    if (useCustomFont && mainFont != nullptr) {
+        GuiSetFont(*mainFont);
+        GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
+    }
+
+    // Title
+    const char* title = getText("CREATE USER", "创建用户");
+    int fontSize = 40;
+    int textWidth = measureTextWithFont(title, fontSize);
+    drawTextWithFont(title, SCREEN_WIDTH / 2 - textWidth / 2, 100, fontSize, currentTheme->text);
+
+    // Input prompt
+    const char* prompt = getText("Enter Username:", "输入用户名:");
+    int promptFontSize = 24;
+    int promptWidth = measureTextWithFont(prompt, promptFontSize);
+    drawTextWithFont(prompt, SCREEN_WIDTH / 2 - promptWidth / 2, 180, promptFontSize, currentTheme->text);
+
+    // Input box background
+    float boxX = (float)(SCREEN_WIDTH / 2 - 200);
+    float boxY = 230.0f;
+    float boxWidth = 400.0f;
+    float boxHeight = 60.0f;
+
+    DrawRectangle((int)boxX, (int)boxY, (int)boxWidth, (int)boxHeight, {30, 30, 50, 255});
+    DrawRectangleLines((int)boxX, (int)boxY, (int)boxWidth, (int)boxHeight, currentTheme->accent);
+
+    // Draw input text
+    drawTextWithFont(nameBuffer, (int)(boxX + 20), (int)(boxY + 20), 24, WHITE);
+
+    // Draw cursor (blinking)
+    int len = 0;
+    while (nameBuffer[len] != '\0' && len < 63) len++;
+    float cursorX = boxX + 20 + measureTextWithFont(nameBuffer, 24);
+    float time = GetTime();
+    if ((int)(time * 3) % 2 == 0) {
+        // Blinking cursor
+        DrawRectangle((int)cursorX, (int)(boxY + 25), 3, 24, {255, 255, 255, 255});
+    }
+
+    // Instructions
+    const char* instructions = getText("Press ENTER to confirm", "按回车键确认");
+    int instrWidth = measureTextWithFont(instructions, 16);
+    drawTextWithFont(instructions, SCREEN_WIDTH / 2 - instrWidth / 2, 320, 16, {150, 150, 150, 255});
+
+    // Back button
+    float backY = 400.0f;
+    if (drawButton((float)(SCREEN_WIDTH / 2) - 100, backY, 200.0f, 50.0f,
+                   getText("BACK", "返回"))) {
+        // Note: back button is handled in game.cpp updateNameInput()
+    }
+}
+
 } // namespace BlockEater

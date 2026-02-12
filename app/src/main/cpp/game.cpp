@@ -36,6 +36,7 @@ Game::Game()
     , timeRemaining(0)
     , deltaTime(0)
     , gameTime(0)
+    , nameInputBuffer{0}  // Initialize empty string
 {
 }
 
@@ -114,6 +115,9 @@ void Game::update() {
         case GameState::USER_MENU:
             updateUserMenu();
             break;
+        case GameState::NAME_INPUT:
+            updateNameInput();
+            break;
     }
 
     ui->update(deltaTime);
@@ -148,6 +152,9 @@ void Game::draw() {
             break;
         case GameState::USER_MENU:
             drawUserMenu();
+            break;
+        case GameState::NAME_INPUT:
+            drawNameInput();
             break;
     }
 
@@ -1161,7 +1168,10 @@ void Game::updateUserMenu() {
         } else if (selection == 1) {
             // Create new user - go to name input
             audio->playButtonClickSound();
-            // TODO: Implement name input UI
+            state = GameState::NAME_INPUT;
+            ui->resetTransition();
+            // Reset input buffer
+            nameInputBuffer[0] = '\0';
         } else if (selection == 2) {
             // Back to main menu
             audio->playButtonClickSound();
@@ -1176,4 +1186,54 @@ void Game::updateUserMenu() {
 void Game::drawUserMenu() {
     // Draw user menu UI
     ui->drawUserMenu(userManager);
+}
+
+void Game::updateNameInput() {
+    // Handle character input for username
+    int key = GetCharPressed();
+
+    if (key != 0) {
+        // Get current length
+        int len = 0;
+        while (nameInputBuffer[len] != '\0' && len < 63) {
+            len++;
+        }
+
+        if (key == KEY_BACKSPACE) {
+            // Handle backspace
+            if (len > 0) {
+                nameInputBuffer[len - 1] = '\0';
+            }
+        } else if (key == KEY_ENTER) {
+            // Confirm name input - create user
+            if (len > 0) {
+                userManager->createUser(nameInputBuffer);
+                audio->playButtonClickSound();
+                state = GameState::USER_MENU;
+                ui->resetTransition();
+            }
+        } else if (key >= 32 && key <= 126 && len < 63) {
+            // Add printable character (space to ~)
+            nameInputBuffer[len] = (char)key;
+            nameInputBuffer[len + 1] = '\0';
+        }
+    }
+
+    // Handle back button to cancel
+    int touchCount = GetTouchPointCount();
+    if (touchCount > 0 || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        Vector2 pos = touchCount > 0 ? GetTouchPosition(0) : GetMousePosition();
+        // Back button area: top-right corner
+        if (pos.x >= SCREEN_WIDTH - 100 && pos.x <= SCREEN_WIDTH - 50 &&
+            pos.y >= 30 && pos.y <= 80) {
+            state = GameState::USER_MENU;
+            ui->resetTransition();
+            audio->playButtonClickSound();
+        }
+    }
+}
+
+void Game::drawNameInput() {
+    // Draw name input screen
+    ui->drawNameInput(nameInputBuffer);
 }
