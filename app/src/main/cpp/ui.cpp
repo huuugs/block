@@ -11,15 +11,15 @@ namespace BlockEater {
 // Define static theme colors array
 Theme UIManager::themes[UIManager::NUM_THEMES] = {
     // Default Blue Theme
-    {{100, 200, 255, 255}, {50, 100, 150, 255}, {255, 200, 50, 255}, {20, 20, 40, 255}, {255, 255, 255, 255}, "Blue"},
+    {{100, 200, 255, 255}, {50, 100, 150, 255}, {255, 200, 50, 255}, {20, 20, 40, 255}, {255, 255, 255, 255}, "Blue", "蓝色"},
     // Dark Theme
-    {{80, 80, 100, 255}, {40, 40, 60, 255}, {150, 150, 180, 255}, {15, 15, 25, 255}, {200, 200, 220, 255}, "Dark"},
+    {{80, 80, 100, 255}, {40, 40, 60, 255}, {150, 150, 180, 255}, {15, 15, 25, 255}, {200, 200, 220, 255}, "Dark", "深色"},
     // Green Theme
-    {{100, 220, 120, 255}, {50, 150, 80, 255}, {255, 220, 100, 255}, {20, 35, 25, 255}, {255, 255, 255, 255}, "Green"},
+    {{100, 220, 120, 255}, {50, 150, 80, 255}, {255, 220, 100, 255}, {20, 35, 25, 255}, {255, 255, 255, 255}, "Green", "绿色"},
     // Purple Theme
-    {{180, 120, 255, 255}, {120, 60, 180, 255}, {255, 180, 100, 255}, {30, 20, 45, 255}, {255, 255, 255, 255}, "Purple"},
+    {{180, 120, 255, 255}, {120, 60, 180, 255}, {255, 180, 100, 255}, {30, 20, 45, 255}, {255, 255, 255, 255}, "Purple", "紫色"},
     // Red Theme
-    {{255, 120, 100, 255}, {180, 60, 50, 255}, {255, 220, 50, 255}, {40, 20, 20, 255}, {255, 255, 255, 255}, "Red"}
+    {{255, 120, 100, 255}, {180, 60, 50, 255}, {255, 220, 50, 255}, {40, 20, 20, 255}, {255, 255, 255, 255}, "Red", "红色"}
 };
 
 // Initialize static log buffer members
@@ -612,8 +612,9 @@ void UIManager::drawSettings() {
     float themeY = startY + spacing;
     drawTextWithFont(getText("Theme:", "主题:"), (int)labelX, (int)(themeY + 15), 20, currentTheme->text);
 
-    // Theme name button
-    if (drawButton(valueX, themeY, buttonWidth, buttonHeight, currentTheme->name)) {
+    // Theme name button - use localized name
+    const char* themeName = getText(currentTheme->name, currentTheme->nameCN);
+    if (drawButton(valueX, themeY, buttonWidth, buttonHeight, themeName)) {
         settingsSelection = 1;  // Next theme
     }
 

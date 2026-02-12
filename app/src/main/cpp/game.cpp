@@ -206,10 +206,10 @@ void Game::shutdown() {
 void Game::updateMenu() {
     // Check for menu button clicks via raygui
     int selection = ui->getMainMenuSelection();
-    
+
     if (selection >= 0) {
         audio->playButtonClickSound();
-        
+
         switch (selection) {
             case 0:  // Play Endless
                 startGame(GameMode::ENDLESS);
@@ -226,11 +226,13 @@ void Game::updateMenu() {
                 ui->resetTransition();
                 break;
             case 4:  // Quit
+                // Stop music before exiting
+                audio->playBackgroundMusic(false);
                 // Exit the game loop
                 CloseWindow();
                 break;
         }
-        
+
         ui->clearSelections();
     }
 }
@@ -322,6 +324,8 @@ void Game::updatePlaying() {
     if (player->getHealth() <= 0) {
         state = GameState::GAME_OVER;
         audio->playDeathSound();
+        // Stop background music on game over
+        audio->playBackgroundMusic(false);
     }
 
     // Update game time
@@ -478,17 +482,19 @@ void Game::updatePaused() {
     if (state != GameState::SETTINGS) {
         previousState = state;
     }
-    
+
     // Handle Pause Menu
     if (state == GameState::PAUSED) {
         int selection = ui->getPauseMenuSelection();
-        
+
         if (selection >= 0) {
             audio->playButtonClickSound();
-            
+
             switch (selection) {
                 case 0:  // Resume
                     state = GameState::PLAYING;
+                    // Resume background music
+                    audio->playBackgroundMusic(true);
                     break;
                 case 1:  // Settings (from pause)
                     state = GameState::SETTINGS;
@@ -498,9 +504,11 @@ void Game::updatePaused() {
                     state = GameState::MENU;
                     resetGame();
                     ui->resetTransition();
+                    // Stop background music when returning to menu
+                    audio->playBackgroundMusic(false);
                     break;
             }
-            
+
             ui->clearSelections();
         }
     }
@@ -548,10 +556,10 @@ void Game::updateSettings() {
 void Game::updateGameOver() {
     // Check for try again/main menu buttons via raygui
     int selection = ui->getGameOverSelection();
-    
+
     if (selection >= 0) {
         audio->playButtonClickSound();
-        
+
         switch (selection) {
             case 0:  // Try Again
                 startGame(mode);
@@ -560,9 +568,11 @@ void Game::updateGameOver() {
                 state = GameState::MENU;
                 resetGame();
                 ui->resetTransition();
+                // Stop background music when going to menu
+                audio->playBackgroundMusic(false);
                 break;
         }
-        
+
         ui->clearSelections();
     }
 }
@@ -803,6 +813,9 @@ void Game::startGame(GameMode newMode) {
     }
 
     audio->playButtonClickSound();
+
+    // Start background music when game begins
+    audio->playBackgroundMusic(true);
 }
 
 void Game::resetGame() {

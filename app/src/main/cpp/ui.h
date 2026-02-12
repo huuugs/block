@@ -32,6 +32,7 @@ struct Theme {
     Color background;
     Color text;
     const char* name;
+    const char* nameCN;  // Chinese name
 };
 
 // Button states

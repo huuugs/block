@@ -111,8 +111,15 @@ void ControlSystem::updateJoystick() {
                     delta = Vector2Normalize(delta) * joystick.radius;
                 }
 
+                // IMPORTANT: Use normalized value from -1 to 1 based on displacement from origin
+                // This ensures the joystick responds even to small finger movements
                 joystick.input = {delta.x / joystick.radius, delta.y / joystick.radius};
                 foundTouch = true;
+
+                // Debug: TraceLog joystick input when it's significant
+                if (Vector2Length(joystick.input) > 0.1f) {
+                    TraceLog(LOG_DEBUG, "Joystick: %.2f, %.2f", joystick.input.x, joystick.input.y);
+                }
                 break;
             }
         }
@@ -139,6 +146,7 @@ void ControlSystem::updateJoystick() {
                 joystick.origin = touchPos;  // Set origin at touch position
                 joystick.originSet = true;
                 joystick.input = {0, 0};  // Start with no input
+                TraceLog(LOG_INFO, "Joystick activated at: %.0f, %.0f", touchPos.x, touchPos.y);
                 break;  // Only handle one touch for joystick
             }
         }
