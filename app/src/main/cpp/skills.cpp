@@ -1,4 +1,6 @@
 #include "skills.h"
+#include "enemy.h"
+#include "player.h"
 #include <cstdio>
 #include <cmath>
 
@@ -165,6 +167,120 @@ bool SkillManager::useSkill(SkillType type, Vector2 playerPos, Vector2 facingDir
     }
 
     return false;
+}
+
+bool SkillManager::isPointInShieldArc(Vector2 point) const {
+    if (!isShieldActive()) return false;
+    
+    // Check if point is within shield radius
+    float dist = Vector2Length(point - shieldPosition);
+    if (dist > SHIELD_RADIUS * 1.5f) return false;  // Allow some margin
+    
+    // Calculate angle from shield center to point
+    float angleToPoint = atan2f(point.y - shieldPosition.y, point.x - shieldPosition.x) * RAD2DEG;
+    float baseAngle = atan2f(shieldDirection.y, shieldDirection.x) * RAD2DEG;
+    
+    // Normalize angle difference
+    float angleDiff = angleToPoint - baseAngle;
+    while (angleDiff > 180) angleDiff -= 360;
+    while (angleDiff < -180) angleDiff += 360;
+    
+    // Check if within arc (±22.5 degrees)
+    return fabs(angleDiff) <= SHIELD_ARC_ANGLE / 2.0f;
+}
+
+bool SkillManager::isOnConvexSide(Vector2 point, Vector2 velocity) const {
+    // Determine which side of the shield the entity is approaching from
+    // The convex side is the "outside" of the arc (facing away from shield direction)
+    // The concave side is the "inside" (facing towards shield direction)
+    
+    Vector2 toShield = shieldPosition - point;
+    float dot = toShield.x * shieldDirection.x + toShield.y * shieldDirection.y;
+    
+    // If dot > 0, entity is on the convex side (shield is in front of them)
+    // If dot < 0, entity is on the concave side (shield is behind them)
+    return dot > 0;
+}
+
+bool SkillManager::checkShieldCollision(Vector2 entityPos, Vector2& entityVel, float entityMass,
+                                        bool& shouldAccelerate) {
+    if (!isShieldActive()) return false;
+    if (!isPointInShieldArc(entityPos)) return false;
+    
+    // Check distance to shield
+    float dist = Vector2Length(entityPos - shieldPosition);
+    if (dist > SHIELD_RADIUS) return false;
+    
+    // Determine which side
+    bool onConvex = isOnConvexSide(entityPos, entityVel);
+    
+    if (onConvex) {
+        // Convex side: mirror reflection
+        shouldAccelerate = false;
+        
+        // Calculate normal at collision point (pointing outward from shield center)
+        Vector2 normal = Vector2Normalize(entityPos - shieldPosition);
+        
+        // Reflect velocity: v' = v - 2(v·n)n
+        float velDotNormal = entityVel.x * normal.x + entityVel.y * normal.y;
+        entityVel.x = entityVel.x - 2 * velDotNormal * normal.x;
+        entityVel.y = entityVel.y - 2 * velDotNormal * normal.y;
+        
+        // Apply restitution (energy loss)
+        entityVel = entityVel * RESTITUTION;
+        
+        // Push entity out of shield
+        float overlap = SHIELD_RADIUS - dist;
+        entityPos = entityPos + normal * (overlap + 5.0f);
+        
+        return true;  // Entity was reflected
+    } else {
+        // Concave side: pass through with acceleration
+        shouldAccelerate = true;
+        
+        // Accelerate the entity
+        float speed = Vector2Length(entityVel);
+        if (speed > 0) {
+            Vector2 dir = Vector2Normalize(entityVel);
+            speed *= 1.5f;  // 50% speed boost
+            entityVel = dir * speed;
+        }
+        
+        return false;  // Entity passes through
+    }
+}
+
+void SkillManager::processShieldInteractions(Player* player, std::vector<Enemy*>& enemies) {
+    if (!isShieldActive() || !player) return;
+    
+    // Check collision with player
+    bool shouldAccel = false;
+    Vector2 playerVel = player->getVelocity();
+    Vector2 playerPos = player->getPosition();
+    
+    if (checkShieldCollision(playerPos, playerVel, player->getMass(), shouldAccel)) {
+        player->setPosition(playerPos);
+        player->setVelocity(playerVel);
+    }
+    
+    // Check collision with enemies
+    for (auto* enemy : enemies) {
+        if (!enemy->isAlive()) continue;
+        
+        Vector2 enemyVel = enemy->getVelocity();
+        Vector2 enemyPos = enemy->getPosition();
+        
+        if (checkShieldCollision(enemyPos, enemyVel, enemy->getMass(), shouldAccel)) {
+            enemy->setPosition(enemyPos);
+            enemy->setVelocity(enemyVel);
+            
+            // Deal damage to enemy on convex collision
+            if (!shouldAccel) {
+                int damage = shieldLevel * 10;
+                enemy->takeDamage(damage);
+            }
+        }
+    }
 }
 
 } // namespace BlockEater

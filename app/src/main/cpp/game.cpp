@@ -221,34 +221,40 @@ void Game::updatePlaying() {
     // Update camera first (follow player)
     camera->update(player->getPosition(), deltaTime);
 
-    // Update player - pass player position for touch follow mode
+    // Update player - physics-based movement
     Vector2 input = controls->getInputVector(player->getPosition());
-    player->move(input);
+    player->applyJoystickInput(input);
     player->update(deltaTime, bullets);
 
-    // Update enemies (with bullet shooting for FLOATING types)
+    // Update enemies (with bullet shooting for FLOATING types and all enemies list)
     for (auto* enemy : enemies) {
-        enemy->update(deltaTime, player->getPosition(), bullets);
+        enemy->update(deltaTime, player->getPosition(), bullets, enemies);
     }
     
-    // Enemy separation - prevent overlapping
+    // Rigid body collisions between enemies
     for (size_t i = 0; i < enemies.size(); i++) {
         for (size_t j = i + 1; j < enemies.size(); j++) {
             Enemy* e1 = enemies[i];
             Enemy* e2 = enemies[j];
             if (!e1->isAlive() || !e2->isAlive()) continue;
             
-            Vector2 pos1 = e1->getPosition();
-            Vector2 pos2 = e2->getPosition();
-            float dist = Vector2Length(pos1 - pos2);
-            float minDist = (e1->getSize() + e2->getSize()) / 2.0f;
+            // Check collision
+            float dx = fabs(e1->getPosition().x - e2->getPosition().x);
+            float dy = fabs(e1->getPosition().y - e2->getPosition().y);
+            float combinedHalfSize = (e1->getSize() + e2->getSize()) / 2.0f;
             
-            if (dist < minDist && dist > 0.01f) {
-                // Push apart
-                Vector2 pushDir = Vector2Normalize(pos1 - pos2);
-                float pushAmount = (minDist - dist) * 0.5f;
-                e1->setPosition(pos1 + pushDir * pushAmount);
-                e2->setPosition(pos2 - pushDir * pushAmount);
+            if (dx < combinedHalfSize && dy < combinedHalfSize) {
+                // Apply rigid body collision
+                Vector2 normal = Vector2Normalize(e1->getPosition() - e2->getPosition());
+                e1->applyRigidBodyCollision(e2);
+                
+                // BOUNCING type special: deal damage and push away strongly
+                if (e1->getType() == EnemyType::BOUNCING) {
+                    e1->applyBouncingDamage(e2);
+                }
+                if (e2->getType() == EnemyType::BOUNCING) {
+                    e2->applyBouncingDamage(e1);
+                }
             }
         }
     }
@@ -260,6 +266,9 @@ void Game::updatePlaying() {
 
     // Update skill manager
     skillManager->update(deltaTime);
+    
+    // Process shield interactions (convex reflection, concave acceleration)
+    skillManager->processShieldInteractions(player, enemies);
 
     // Check collisions
     checkCollisions();
@@ -1010,7 +1019,7 @@ void Game::checkCollisions() {
         }
     }
 
-    // Check player-enemy collisions
+    // Check player-enemy collisions with rigid body physics
     auto it = enemies.begin();
     while (it != enemies.end()) {
         Enemy* enemy = *it;
@@ -1023,13 +1032,23 @@ void Game::checkCollisions() {
         Vector2 enemyPos = enemy->getPosition();
         int enemySize = enemy->getSize();
 
-        // Simple AABB collision
+        // AABB collision check
         float dx = fabs(playerPos.x - enemyPos.x);
         float dy = fabs(playerPos.y - enemyPos.y);
         float combinedHalfSize = (playerSize + enemySize) / 2.0f;
 
         if (dx < combinedHalfSize && dy < combinedHalfSize) {
-            if (playerSize >= enemySize) {
+            // Check if player can eat enemy
+            bool canPlayerEat = (playerSize > enemySize) || 
+                                ((enemy->getType() == EnemyType::CHASING || 
+                                  enemy->getType() == EnemyType::FLOATING) && 
+                                 enemy->isVulnerable());
+            
+            // Check if enemy can eat player (only if enemy is significantly bigger)
+            bool canEnemyEat = (enemySize >= playerSize * 1.5f) && 
+                               (enemy->getType() != EnemyType::STATIONARY);
+            
+            if (canPlayerEat && !canEnemyEat) {
                 // Player eats enemy - grow by area
                 player->growByArea(enemySize);
                 
@@ -1059,18 +1078,23 @@ void Game::checkCollisions() {
                 particles->spawnTextPopup(enemyPos, "+SIZE", {100, 255, 100, 255});
 
                 enemy->kill();
+            } else if (canEnemyEat) {
+                // Enemy eats player - game over
+                player->takeDamage(player->getHealth());  // Kill player
+                particles->spawnPixelExplosion(playerPos, {255, 0, 0, 255}, 20);
+                audio->playDeathSound();
             } else {
-                // Enemy hurts player - check for rotation skill (damage reduction)
-                int damage = enemySize / 3;
+                // Rigid body collision - both survive but bounce off each other
+                Vector2 normal = Vector2Normalize(playerPos - enemyPos);
+                player->applyRigidBodyCollision(enemy->getMass(), enemy->getVelocity(), normal);
+                enemy->applyRigidBodyCollision(player->getMass(), player->getVelocity(), -normal);
+                
+                // Small damage on collision
+                int damage = enemySize / 5;
                 player->takeDamage(damage);
-                audio->playHitSound();
-
-                // Spawn damage number
-                particles->spawnDamageNumber(playerPos, damage, false);
-
-                // Push player back
-                Vector2 pushDir = Vector2Normalize(playerPos - enemyPos);
-                player->setPosition(playerPos + pushDir * 20.0f);
+                if (damage > 0) {
+                    particles->spawnDamageNumber(playerPos, damage, false);
+                }
             }
         }
 
@@ -1096,22 +1120,41 @@ void Game::checkCollisions() {
             float combinedHalfSize = (size1 + size2) / 2.0f;
             
             if (dx < combinedHalfSize && dy < combinedHalfSize) {
-                // Bigger enemy eats smaller one (must be at least 10% bigger)
-                if (size1 >= size2 * 1.1f) {
-                    // e1 eats e2
+                // BOUNCING types don't eat, they just deal damage
+                if (e1->getType() == EnemyType::BOUNCING || e2->getType() == EnemyType::BOUNCING) {
+                    // Already handled in update with applyBouncingDamage
+                    continue;
+                }
+                
+                // Check for vulnerable enemies (CHASING/FLOATING with <30% health)
+                bool e1Vulnerable = (e1->getType() == EnemyType::CHASING || e1->getType() == EnemyType::FLOATING) 
+                                    && e1->isVulnerable();
+                bool e2Vulnerable = (e2->getType() == EnemyType::CHASING || e2->getType() == EnemyType::FLOATING) 
+                                    && e2->isVulnerable();
+                
+                // Check if one can eat the other
+                if ((size1 > size2 || e2Vulnerable) && !(e1->getType() == EnemyType::STATIONARY && size1 < size2)) {
+                    // e1 eats e2 (STATIONARY can eat if bigger, but not if smaller)
                     e1->growByArea(size2);
-                    e2->takeDamage(e2->getHealth());  // Kill e2
+                    e2->takeDamage(e2->getHealth());
                     particles->spawnPixelExplosion(pos2, e2->getColor(), 8);
                     particles->spawnTextPopup(pos2, "EATEN", {255, 100, 100, 255});
-                } else if (size2 >= size1 * 1.1f) {
+                } else if ((size2 > size1 || e1Vulnerable) && !(e2->getType() == EnemyType::STATIONARY && size2 < size1)) {
                     // e2 eats e1
                     e2->growByArea(size1);
-                    e1->takeDamage(e1->getHealth());  // Kill e1
+                    e1->takeDamage(e1->getHealth());
                     particles->spawnPixelExplosion(pos1, e1->getColor(), 8);
                     particles->spawnTextPopup(pos1, "EATEN", {255, 100, 100, 255});
                 }
-                // If sizes are similar, just push apart (already done in update)
+                // If sizes are similar and neither is vulnerable, rigid body collision handles it
             }
+        }
+    }
+    
+    // Process STATIONARY enemies eating bullets
+    for (auto* enemy : enemies) {
+        if (enemy->isAlive() && enemy->getType() == EnemyType::STATIONARY) {
+            enemy->tryEatBullet(bullets);
         }
     }
 }

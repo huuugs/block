@@ -9,52 +9,167 @@ namespace BlockEater {
 Player::Player()
     : position{WORLD_WIDTH / 2.0f, WORLD_HEIGHT / 2.0f}
     , velocity{0, 0}
-    , facingDirection{1, 0}  // Default facing right
-    , size(INITIAL_SIZE)  // Start with initial size
+    , acceleration{0, 0}
+    , facingDirection{1, 0}
+    , size(INITIAL_SIZE)
     , health(LEVEL_STATS[0].maxHealth)
     , level(1)
     , experience(0)
     , experienceToNextLevel(50)
-    , energy(100.0f)
-    , maxEnergy(100.0f)
+    , kineticEnergy(0)
+    , maxKineticEnergy(0)
+    , potentialEnergy(100.0f)
     , invincibleTime(0)
     , bulletSkillEnabled(false)
     , bulletCooldown(0)
 {
+    updateStatsForSize();
+    updateEnergy();
 }
 
 Player::~Player() {
 }
 
+void Player::updateStatsForSize() {
+    // Mass proportional to volume: m = density * size^3
+    mass = DENSITY * size * size * size;
+    if (mass < 1.0f) mass = 1.0f;
+    
+    // Max kinetic energy based on mass and max speed
+    float maxSpeed = getMoveSpeed();
+    maxKineticEnergy = 0.5f * mass * maxSpeed * maxSpeed;
+}
+
+void Player::updateEnergy() {
+    // Kinetic energy: KE = 0.5 * m * v^2
+    float speedSq = velocity.x * velocity.x + velocity.y * velocity.y;
+    kineticEnergy = 0.5f * mass * speedSq;
+}
+
 void Player::update(float dt, std::vector<Bullet*>& bullets) {
-    // Update invincibility frames
+    // Update invincibility
     if (invincibleTime > 0) {
         invincibleTime -= dt;
     }
 
-    // Apply velocity with damping
-    position.x += velocity.x * dt;
-    position.y += velocity.y * dt;
-
-    // Apply friction
-    velocity = velocity * 0.92f;
-
-    // Energy regeneration when not moving
-    if (Vector2Length(velocity) < 1.0f && energy < maxEnergy) {
-        energy += 5.0f * dt;
-        if (energy > maxEnergy) energy = maxEnergy;
+    // Apply physics
+    updatePhysics(dt);
+    
+    // Update facing direction based on velocity
+    if (Vector2Length(velocity) > 1.0f) {
+        facingDirection = Vector2Normalize(velocity);
     }
-
+    
+    // Update energy
+    updateEnergy();
+    
     // Check bounds
     checkBounds();
     
-    // Update bullet skill
-    updateBulletSkill(dt);
+    // Bullet skill
+    if (bulletCooldown > 0) {
+        bulletCooldown -= dt;
+        if (bulletCooldown < 0) bulletCooldown = 0;
+    }
     
-    // Try to shoot bullets if skill enabled
     if (bulletSkillEnabled) {
         tryShootBullet(bullets);
     }
+}
+
+void Player::updatePhysics(float dt) {
+    // Apply acceleration to velocity (Newton's 2nd law: F = ma)
+    velocity.x += acceleration.x * dt;
+    velocity.y += acceleration.y * dt;
+    
+    // Apply very low friction (space-like environment)
+    velocity = velocity * FRICTION;
+    
+    // Update position
+    position.x += velocity.x * dt;
+    position.y += velocity.y * dt;
+    
+    // Reset acceleration
+    acceleration = {0, 0};
+    
+    // Regenerate potential energy when nearly stopped
+    if (Vector2Length(velocity) < 5.0f && potentialEnergy < maxKineticEnergy) {
+        potentialEnergy += maxKineticEnergy * 0.1f * dt;
+        if (potentialEnergy > maxKineticEnergy) {
+            potentialEnergy = maxKineticEnergy;
+        }
+    }
+}
+
+void Player::applyJoystickInput(Vector2 inputDirection) {
+    // Joystick applies force, not direct velocity change
+    if (Vector2Length(inputDirection) < 0.01f) return;
+    
+    // Normalize input
+    Vector2 dir = Vector2Normalize(inputDirection);
+    
+    // Calculate desired velocity based on max speed
+    float maxSpeed = getMoveSpeed();
+    Vector2 desiredVelocity = {dir.x * maxSpeed, dir.y * maxSpeed};
+    
+    // Steering force = desired - current
+    Vector2 steering = {desiredVelocity.x - velocity.x, 
+                        desiredVelocity.y - velocity.y};
+    
+    // Limit steering force based on level
+    float maxForce = LEVEL_STATS[level - 1].maxForce;
+    float steerMag = Vector2Length(steering);
+    if (steerMag > maxForce) {
+        steering = Vector2Normalize(steering) * maxForce;
+    }
+    
+    // Apply force (F = ma, so a = F/m)
+    applyForce(steering);
+    
+    // Consume potential energy to apply force
+    float energyCost = Vector2Length(steering) * 0.1f;
+    if (potentialEnergy >= energyCost) {
+        potentialEnergy -= energyCost;
+    } else {
+        // Not enough energy - reduce force
+        float ratio = potentialEnergy / energyCost;
+        steering = steering * ratio;
+        potentialEnergy = 0;
+    }
+}
+
+void Player::applyForce(Vector2 force) {
+    acceleration.x += force.x / mass;
+    acceleration.y += force.y / mass;
+}
+
+void Player::applyRigidBodyCollision(float otherMass, Vector2 otherVelocity, 
+                                     Vector2 collisionNormal) {
+    // Elastic collision with another entity
+    Vector2 vel1 = velocity;
+    Vector2 vel2 = otherVelocity;
+    float m1 = mass;
+    float m2 = otherMass;
+    Vector2 n = collisionNormal;
+    
+    // Relative velocity along normal
+    Vector2 relVel = {vel1.x - vel2.x, vel1.y - vel2.y};
+    float velAlongNormal = relVel.x * n.x + relVel.y * n.y;
+    
+    // Do not resolve if velocities are separating
+    if (velAlongNormal > 0) return;
+    
+    // Restitution (bounciness)
+    float e = RESTITUTION;
+    
+    // Calculate impulse scalar
+    float j = -(1 + e) * velAlongNormal;
+    j /= (1 / m1 + 1 / m2);
+    
+    // Apply impulse
+    Vector2 impulse = {j * n.x, j * n.y};
+    velocity.x += impulse.x / m1;
+    velocity.y += impulse.y / m1;
 }
 
 void Player::draw() {
@@ -73,7 +188,7 @@ void Player::draw() {
         {0, 0, 0, 100}
     );
 
-    // Draw main block with pixel style
+    // Draw main block
     DrawRectangle(
         (int)position.x - size/2,
         (int)position.y - size/2,
@@ -110,34 +225,16 @@ void Player::draw() {
              
     // Draw bullet skill indicator
     if (bulletSkillEnabled) {
-        // Draw small glow around player
         DrawCircleLines((int)position.x, (int)position.y, size/2 + 5, {255, 255, 0, 150});
     }
-}
-
-void Player::move(Vector2 direction) {
-    float speed = getMoveSpeed();
-    float len = Vector2Length(direction);
-
-    if (len > 0.01f) {
-        // Normalize and apply speed
-        Vector2 dir = Vector2Normalize(direction);
-        velocity.x += dir.x * speed * 0.1f;
-        velocity.y += dir.y * speed * 0.1f;
-
-        // Update facing direction when moving
-        facingDirection = dir;
-
-        // Clamp velocity
-        float velLen = Vector2Length(velocity);
-        float maxVel = speed;
-        if (velLen > maxVel) {
-            velocity = Vector2Normalize(velocity) * maxVel;
-        }
-
-        // Consume energy
-        energy -= 10.0f * GetFrameTime();
-        if (energy < 0) energy = 0;
+    
+    // Draw velocity indicator (small arrow)
+    if (Vector2Length(velocity) > 10.0f) {
+        Vector2 dir = Vector2Normalize(velocity);
+        int arrowLen = size / 2 + 10;
+        Vector2 end = {position.x + dir.x * arrowLen, position.y + dir.y * arrowLen};
+        DrawLine((int)position.x, (int)position.y, (int)end.x, (int)end.y, 
+                 {255, 255, 255, 150});
     }
 }
 
@@ -171,37 +268,36 @@ void Player::addExperience(int exp) {
 void Player::levelUp() {
     if (level < MAX_LEVEL) {
         level++;
-        // Reduced experience requirement for faster leveling
         experienceToNextLevel = 50 * level * level;
 
         // Restore health on level up
         int maxHp = getMaxHealth();
         health = maxHp;
 
-        // Restore energy
-        energy = maxEnergy;
+        // Restore potential energy
+        potentialEnergy = maxKineticEnergy;
+        
+        // Update stats for new level
+        updateStatsForSize();
     }
 }
 
 void Player::growByArea(int eatenSize) {
-    // Calculate new size based on area: A_new = A_old + A_eaten
-    // size is diameter, so area is proportional to size^2
     float oldArea = size * size;
     float eatenArea = eatenSize * eatenSize;
     float newArea = oldArea + eatenArea;
     int newSize = (int)sqrtf(newArea);
-    
     setSize(newSize);
 }
 
 void Player::setSize(int newSize) {
     if (newSize < 10) newSize = 10;
-    if (newSize > 500) newSize = 500;  // Max size cap
+    if (newSize > 500) newSize = 500;
     
     size = newSize;
     
-    // Health is kept proportional to max health when size changes
-    float healthPercent = (float)health / getMaxHealth();
+    float healthPercent = (health > 0) ? (float)health / getMaxHealth() : 1.0f;
+    updateStatsForSize();
     health = (int)(getMaxHealth() * healthPercent);
     if (health < 1) health = 1;
 }
@@ -209,38 +305,50 @@ void Player::setSize(int newSize) {
 void Player::tryShootBullet(std::vector<Bullet*>& bullets) {
     if (!bulletSkillEnabled || bulletCooldown > 0) return;
     
-    // Shoot in facing direction
-    Bullet* bullet = new Bullet(position, facingDirection, size, 0);  // playerId = 0
+    Bullet* bullet = new Bullet(position, facingDirection, size, 0);
     bullets.push_back(bullet);
+    
+    // Recoil
+    Vector2 recoil = {-facingDirection.x * 50.0f, -facingDirection.y * 50.0f};
+    applyForce(recoil);
     
     bulletCooldown = BULLET_COOLDOWN;
 }
 
-void Player::updateBulletSkill(float dt) {
-    if (bulletCooldown > 0) {
-        bulletCooldown -= dt;
-        if (bulletCooldown < 0) bulletCooldown = 0;
-    }
-}
-
 void Player::checkBounds() {
     int halfSize = size / 2;
+    bool hitWall = false;
+    Vector2 normal = {0, 0};
 
     if (position.x < halfSize) {
         position.x = halfSize;
-        velocity.x = 0;
+        normal.x = 1;
+        hitWall = true;
     }
     if (position.x > WORLD_WIDTH - halfSize) {
         position.x = WORLD_WIDTH - halfSize;
-        velocity.x = 0;
+        normal.x = -1;
+        hitWall = true;
     }
     if (position.y < halfSize) {
         position.y = halfSize;
-        velocity.y = 0;
+        normal.y = 1;
+        hitWall = true;
     }
     if (position.y > WORLD_HEIGHT - halfSize) {
         position.y = WORLD_HEIGHT - halfSize;
-        velocity.y = 0;
+        normal.y = -1;
+        hitWall = true;
+    }
+    
+    // Reflect velocity off walls
+    if (hitWall && Vector2Length(normal) > 0) {
+        normal = Vector2Normalize(normal);
+        float velDotNormal = velocity.x * normal.x + velocity.y * normal.y;
+        if (velDotNormal < 0) {
+            velocity.x -= 2 * velDotNormal * normal.x * RESTITUTION;
+            velocity.y -= 2 * velDotNormal * normal.y * RESTITUTION;
+        }
     }
 }
 

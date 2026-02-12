@@ -3,15 +3,20 @@
 
 #include "raylib.h"
 #include "game.h"
+#include <vector>
 
 namespace BlockEater {
+
+// Forward declaration
+class Enemy;
+class Player;
 
 // Skill types
 enum class SkillType {
     ROTATE,     // Damage reduction and reflection
     BLINK,      // Teleport in facing direction
     SHOOT,      // Shoot bullet (consumes HP)
-    SHIELD      // Arc shield defense
+    SHIELD      // Advanced shield: convex reflects, concave accelerates
 };
 
 // Skill data
@@ -51,6 +56,13 @@ public:
     Vector2 getShieldPosition() const { return shieldPosition; }
     Vector2 getShieldDirection() const { return shieldDirection; }
     int getShieldLevel() const { return shieldLevel; }
+    
+    // New shield physics
+    // Returns: true if entity should be reflected (convex side), 
+    //          false if it should pass through (concave side) with acceleration
+    bool checkShieldCollision(Vector2 entityPos, Vector2& entityVel, float entityMass, 
+                              bool& shouldAccelerate);
+    void processShieldInteractions(Player* player, std::vector<Enemy*>& enemies);
 
     // Skill visual effects
     bool isRotating() const { return m_isRotating; }
@@ -74,11 +86,20 @@ private:
     Vector2 shieldPosition;
     Vector2 shieldDirection;
     int shieldLevel;
+    
+    // Shield geometry
+    static constexpr float SHIELD_RADIUS = 80.0f;
+    static constexpr float SHIELD_ARC_ANGLE = 45.0f;  // Total arc width
+    static constexpr float RESTITUTION = 0.9f;  // Bounciness
 
     // Blink effect
     Vector2 blinkFromPos;
     Vector2 blinkToPos;
     float blinkTimer;
+    
+    // Helper functions
+    bool isPointInShieldArc(Vector2 point) const;
+    bool isOnConvexSide(Vector2 point, Vector2 velocity) const;
 };
 
 } // namespace BlockEater
