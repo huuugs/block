@@ -27,7 +27,7 @@ android {
     }
 
     signingConfigs {
-        create("debug") {
+        create("blockeaterDebug") {
             storeFile = file(System.getProperty("user.home") + "/.android/debug.keystore")
             storePassword = "blockeater2024"
             keyAlias = "blockeaterdebug"
@@ -37,7 +37,7 @@ android {
 
     buildTypes {
         debug {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("blockeaterDebug")
         }
         release {
             isMinifyEnabled = false
