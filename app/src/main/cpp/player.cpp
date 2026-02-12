@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
+#include <cstdarg>  // For va_list if needed
 
 namespace BlockEater {
 
@@ -107,8 +108,10 @@ void Player::applyJoystickInput(Vector2 inputDirection) {
 
     // DEBUG: Log input vector details using TraceLog for Android logcat visibility
     float inputLen = Vector2Length(inputDirection);
-    TraceLog(LOG_DEBUG, "JOYSTICK: input=(%.2f,%.2f) len=%.2f",
-             inputDirection.x, inputDirection.y, inputLen);
+    char logMsg[256];
+    sprintf(logMsg, "JOYSTICK: input=%f,%f len=%f",
+            (double)inputDirection.x, (double)inputDirection.y, (double)inputLen);
+    TraceLog(LOG_DEBUG, "%s", logMsg);
 
     // Don't apply force if input is essentially zero
     if (inputLen < 0.01f) {
@@ -137,8 +140,10 @@ void Player::applyJoystickInput(Vector2 inputDirection) {
     applyForce(steering);
 
     // DEBUG: Log force application
-    TraceLog(LOG_DEBUG, "FORCE: steering=(%.2f,%.2f) fdiv=(%.2f,%.2f) accel=(%.2f,%.2f)",
-             steering.x, steering.y, steering.x / mass, steering.y / mass, acceleration.x, acceleration.y);
+    sprintf(logMsg, "FORCE: steering=%f,%f accel=%f,%f",
+            (double)steering.x, (double)steering.y,
+            (double)acceleration.x, (double)acceleration.y);
+    TraceLog(LOG_DEBUG, "%s", logMsg);
 
     // Consume potential energy to apply force
     float energyCost = Vector2Length(steering) * 0.1f;

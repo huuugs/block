@@ -232,7 +232,9 @@ void Game::updateMenu() {
             case 5:  // Quit
                 // Stop music before exiting
                 audio->playBackgroundMusic(false);
-                // Exit the game loop
+                // Close window to exit game loop
+                // On Android, this will properly exit the app
+                CloseWindow();
                 break;
         }
 

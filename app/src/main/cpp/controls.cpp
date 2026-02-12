@@ -115,8 +115,11 @@ void ControlSystem::updateJoystick() {
                 foundTouch = true;
 
                 // Debug: Always log joystick input for diagnosis (removed threshold check)
-                TraceLog(LOG_DEBUG, "Joystick input: %.2f, %.2f (delta: %.0f, %.0f, dist: %.0f)",
-                         joystick.input.x, joystick.input.y, delta.x, delta.y, dist);
+                char logMsg[256];
+                sprintf(logMsg, "Joystick input: %f,%f (delta: %f,%f dist: %f)",
+                        (double)joystick.input.x, (double)joystick.input.y,
+                        (double)delta.x, (double)delta.y, (double)dist);
+                TraceLog(LOG_DEBUG, "%s", logMsg);
                 break;
             }
         }
@@ -137,10 +140,6 @@ void ControlSystem::updateJoystick() {
         for (int i = 0; i < touchCount; i++) {
             Vector2 touchPos = GetTouchPosition(i);
 
-            // DEBUG: Log all touch positions
-            TraceLog(LOG_DEBUG, "Touch %d: pos=(%.0f,%.0f) screenHalf=%.0f",
-                     i, touchPos.x, touchPos.y, SCREEN_WIDTH / 2.0f);
-
             // Check if touch is in left half of screen
             if (touchPos.x < SCREEN_WIDTH / 2) {
                 joystick.active = true;
@@ -148,9 +147,12 @@ void ControlSystem::updateJoystick() {
                 joystick.origin = touchPos;  // Set origin at touch position
                 joystick.originSet = true;
                 joystick.input = {0, 0};  // Start with no input
-                TraceLog(LOG_INFO, "Joystick ACTIVATED: radius=%.0f origin=(%.0f,%.0f) touchID=%d screen=%dx%d",
-                         joystick.radius, joystick.origin.x, joystick.origin.y, joystick.touchPointId,
-                         SCREEN_WIDTH, SCREEN_HEIGHT);
+                // Use TextFormat for proper formatting
+                char logMsg[256];
+                sprintf(logMsg, "Joystick ACTIVATED: origin=%f,%f touchID=%d screen=%dx%d",
+                        (double)joystick.origin.x, (double)joystick.origin.y,
+                        joystick.touchPointId, SCREEN_WIDTH, SCREEN_HEIGHT);
+                TraceLog(LOG_INFO, "%s", logMsg);
                 break;  // Only handle one touch for joystick
             }
         }
