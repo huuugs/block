@@ -60,10 +60,10 @@ Vector2 ControlSystem::getInputVector(Vector2 playerPos) const {
     // Fall back to touch input - FIX: Always return joystick input, remove threshold check
     // This ensures even small finger movements are registered
     if (mode == ControlMode::VIRTUAL_JOYSTICK) {
-        // DEBUG: Log what we're returning
-        TraceLog(LOG_INFO, "getInputVector: returning joystick input=%d,%d active=%d",
+        // DEBUG: Log what we're returning - use TextFormat for Android compatibility
+        TraceLog(LOG_INFO, TextFormat("getInputVector: returning joystick input=%i,%i active=%i",
                 (int)(joystick.input.x * 1000), (int)(joystick.input.y * 1000),
-                joystick.active ? 1 : 0);
+                joystick.active ? 1 : 0));
         return joystick.input;
     } else {
         // Touch follow mode - calculate direction from touch to player
@@ -120,10 +120,10 @@ void ControlSystem::updateJoystick() {
                 foundTouch = true;
 
                 // Debug: Always log joystick input for diagnosis
-                // Use integer values (x1000) to avoid float formatting issues
-                TraceLog(LOG_INFO, "Joystick input: %d,%d (delta: %d,%d dist: %d)",
+                // Use TextFormat for proper formatting on Android
+                TraceLog(LOG_INFO, TextFormat("Joystick input: %i,%i (delta: %i,%i dist: %i)",
                         (int)(joystick.input.x * 1000), (int)(joystick.input.y * 1000),
-                        (int)(delta.x), (int)(delta.y), (int)(dist));
+                        (int)(delta.x), (int)(delta.y), (int)(dist)));
                 break;
             }
         }
@@ -151,10 +151,10 @@ void ControlSystem::updateJoystick() {
                 joystick.origin = touchPos;  // Set origin at touch position
                 joystick.originSet = true;
                 joystick.input = {0, 0};  // Start with no input
-                // Use integers to avoid float formatting issues
-                TraceLog(LOG_INFO, "Joystick ACTIVATED: origin=%d,%d touchID=%d screen=%dx%d",
+                // Use TextFormat for proper formatting
+                TraceLog(LOG_INFO, TextFormat("Joystick ACTIVATED: origin=%i,%i touchID=%i screen=%ix%i",
                         (int)(joystick.origin.x), (int)(joystick.origin.y),
-                        joystick.touchPointId, SCREEN_WIDTH, SCREEN_HEIGHT);
+                        joystick.touchPointId, SCREEN_WIDTH, SCREEN_HEIGHT));
                 break;  // Only handle one touch for joystick
             }
         }

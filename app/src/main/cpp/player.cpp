@@ -108,10 +108,10 @@ void Player::applyJoystickInput(Vector2 inputDirection) {
 
     // DEBUG: Log input vector details using TraceLog for Android logcat visibility
     float inputLen = Vector2Length(inputDirection);
-    // Use integers (x1000) to avoid float formatting issues
-    TraceLog(LOG_INFO, "JOYSTICK: input=%d,%d len=%d",
+    // Use TextFormat for proper formatting
+    TraceLog(LOG_INFO, TextFormat("JOYSTICK: input=%i,%i len=%i",
             (int)(inputDirection.x * 1000), (int)(inputDirection.y * 1000),
-            (int)(inputLen * 1000));
+            (int)(inputLen * 1000)));
 
     // Don't apply force if input is essentially zero
     if (inputLen < 0.01f) {
@@ -139,11 +139,11 @@ void Player::applyJoystickInput(Vector2 inputDirection) {
     // Apply force (F = ma, so a = F/m)
     applyForce(steering);
 
-    // DEBUG: Log force application
-    TraceLog(LOG_INFO, "FORCE: steer=%d,%d accel=%d,%d mass=%d",
+    // DEBUG: Log force application - use TextFormat
+    TraceLog(LOG_INFO, TextFormat("FORCE: steer=%i,%i accel=%i,%i mass=%i",
             (int)(steering.x), (int)(steering.y),
             (int)(acceleration.x), (int)(acceleration.y),
-            (int)mass);
+            (int)mass));
 
     // Consume potential energy to apply force
     float energyCost = Vector2Length(steering) * 0.1f;
