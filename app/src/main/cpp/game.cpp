@@ -1059,9 +1059,33 @@ void Game::checkCollisions() {
                 if (player->getLevel() > oldLevel) {
                     particles->spawnLevelUp(playerPos, player->getLevel());
                     audio->playLevelUpSound();
-                } else {
-                    audio->playEatSound(player->getLevel());
                 }
+
+                // Check for level completion and unlock next level
+                if (mode == GameMode::LEVEL) {
+                    LevelDefinition level = modeManager->getCurrentLevelDef();
+                    int currentLevel = player->getLevel();
+
+                    // Check if reached target score and level
+                    if (score >= level.targetScore && currentLevel >= level.targetLevel) {
+                        // Level complete! Unlock next level
+                        if (currentLevel < 10) {
+                            // Unlock next level
+                            modeManager->nextLevel();
+                            particles->spawnTextPopup(playerPos,
+                                TextFormat("LEVEL %d COMPLETE!", currentLevel));
+                            audio->playLevelUpSound();
+
+                            // Update user stats
+                            User* user = userManager->getCurrentUser();
+                            if (user && user->maxLevelUnlocked < currentLevel) {
+                                user->maxLevelUnlocked = currentLevel;
+                            }
+                        }
+                    }
+                }
+
+                audio->playEatSound(player->getLevel());
 
                 // Spawn particles
                 particles->spawnPixelExplosion(enemyPos, enemy->getColor(), 10);
@@ -1157,8 +1181,9 @@ void Game::updateUserMenu() {
     // User menu is handled by UI
     int selection = ui->getUserMenuSelection();
     int userSelection = ui->getUserSelection();
+    int deleteConfirm = ui->getDeleteUserConfirm();
 
-    if (selection >= 0 || userSelection >= 0) {
+    if (selection >= 0 || userSelection >= 0 || deleteConfirm >= 0) {
         if (userSelection >= 0 && userSelection < UserManager::MAX_USERS) {
             // User selected - switch to this user
             userManager->setCurrentUser(userSelection);
@@ -1177,6 +1202,17 @@ void Game::updateUserMenu() {
             audio->playButtonClickSound();
             state = GameState::MENU;
             ui->resetTransition();
+        } else if (deleteConfirm == 1) {
+            // Confirm delete user
+            int userToDelete = ui->userToDelete;  // Get stored user index
+            if (userToDelete >= 0 && userToDelete < UserManager::MAX_USERS) {
+                userManager->deleteUser(userToDelete);
+                audio->playButtonClickSound();
+                ui->resetTransition();
+                // Clear delete confirmation
+                ui->deleteUserConfirm = -1;
+                ui->userToDelete = -1;
+            }
         }
 
         ui->clearSelections();

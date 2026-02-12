@@ -137,6 +137,8 @@ public:
     void drawLogs();
     void drawUserMenu(const UserManager* userManager);
     void drawNameInput(const char* nameBuffer);  // Draw name input screen
+    void drawUserStats(const UserManager* userManager, int userIndex);  // Draw detailed user stats
+    void drawDeleteConfirm(const UserManager* userManager, int userIndex);  // Draw delete confirmation
 
     // Logging system for debugging
     static void logInfo(const char* message);
@@ -152,6 +154,7 @@ public:
     int getLogsSelection() const { return logsSelection; }
     int getUserMenuSelection() const { return userMenuSelection; }
     int getUserSelection() const { return userSelection; }
+    int getDeleteUserConfirm() const { return deleteUserConfirm; }
     int getSelectedLevel() const { return selectedLevel; }
     
     void clearSelections() {
@@ -164,6 +167,8 @@ public:
         userMenuSelection = -1;
         userSelection = -1;
         selectedLevel = -1;
+        deleteUserConfirm = -1;
+        userToDelete = -1;
     }
 
 private:
@@ -212,6 +217,8 @@ private:
     int userMenuSelection;
     int userSelection;
     int selectedLevel;
+    int deleteUserConfirm;  // For delete user confirmation
+    int userToDelete;     // Which user to delete
 
     // Colors (deprecated, using themes now)
     Color primaryColor;

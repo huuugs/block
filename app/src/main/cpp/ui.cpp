@@ -513,6 +513,13 @@ void UIManager::drawLevelSelect() {
     float startX = ((float)SCREEN_WIDTH - totalWidth) / 2;
     float startY = 150.0f;
 
+    // Get max unlocked level from user data
+    int maxUnlockedLevel = 1;  // At least level 1 is unlocked
+    const User* currentUser = getCurrentUser();
+    if (currentUser) {
+        maxUnlockedLevel = currentUser->maxLevelUnlocked;
+    }
+
     for (int i = 0; i < 10; i++) {
         int row = i / 5;
         int col = i % 5;
@@ -522,9 +529,43 @@ void UIManager::drawLevelSelect() {
         char levelText[16];
         sprintf(levelText, "%d", i + 1);
 
-        if (drawButton(x, y, buttonSize, buttonSize, levelText)) {
-            selectedLevel = i + 1;
-            levelSelectSelection = 0;  // Confirm selection
+        // Check if level is unlocked
+        bool isUnlocked = (i + 1) <= maxUnlockedLevel;
+        Color buttonColor = isUnlocked ? currentTheme->secondary : (Color){60, 60, 60, 150};
+        Color textColor = isUnlocked ? currentTheme->text : (Color){120, 120, 120, 150};
+
+        // Draw button
+        DrawRectangle((int)x, (int)y, (int)buttonSize, (int)buttonSize, buttonColor);
+        DrawRectangleLines((int)x, (int)y, (int)buttonSize, (int)buttonSize, currentTheme->accent);
+
+        // Draw level number
+        drawTextWithFont(levelText, (int)(x + buttonSize/2 - 10), (int)(y + 20), 24, textColor);
+
+        // Draw lock icon if locked
+        if (!isUnlocked) {
+            // Draw lock
+            int lockX = (int)(x + buttonSize/2 - 8);
+            int lockY = (int)(y + 25);
+            DrawRectangle(lockX - 10, lockY - 10, 16, 16, (Color){80, 80, 80, 150});
+            // Draw lock body
+            DrawRectangle(lockX - 6, lockY - 6, 12, 12, (Color){120, 120, 120, 150});
+            // Draw key hole
+            DrawCircle(lockX + 2, lockY + 4, 3, (Color){60, 60, 60, 150});
+        }
+
+        // Check for click (only if unlocked)
+        if (isUnlocked) {
+            int touchCount = GetTouchPointCount();
+            for (int t = 0; t < touchCount; t++) {
+                Vector2 pos = GetTouchPosition(t);
+                if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) || t == touchCount - 1) {
+                    Rectangle buttonRect = {x, y, buttonSize, buttonSize};
+                    if (CheckCollisionPointRec(pos, buttonRect)) {
+                        selectedLevel = i + 1;
+                        levelSelectSelection = 0;  // Confirm selection
+                    }
+                }
+            }
         }
     }
 
@@ -924,71 +965,110 @@ void UIManager::drawUserMenu(const UserManager* userManager) {
 
     float centerX = SCREEN_WIDTH / 2.0f;
     float centerY = SCREEN_HEIGHT / 2.0f;
-    
+
     // Draw title
     const char* title = getText("USER SYSTEM", "用户系统");
-    int titleWidth = MeasureText(title, 40);
-    DrawText(title, (int)(centerX - titleWidth / 2), 80, 40, currentTheme->text);
-    
+    int titleWidth = measureTextWithFont(title, 40);
+    drawTextWithFont(title, SCREEN_WIDTH / 2 - titleWidth / 2, 80, 40, currentTheme->text);
+
     // Draw current user
     const User* currentUser = userManager->getCurrentUser();
     if (currentUser) {
         char currentUserText[128];
         snprintf(currentUserText, sizeof(currentUserText),
                  getText("Current User: %s", "当前用户: %s"), currentUser->username);
-        int userTextWidth = MeasureText(currentUserText, 24);
-        DrawText(currentUserText, (int)(centerX - userTextWidth / 2), 140, 24, currentTheme->accent);
+        int userTextWidth = measureTextWithFont(currentUserText, 24);
+        drawTextWithFont(currentUserText, SCREEN_WIDTH / 2 - userTextWidth / 2, 140, 24, currentTheme->accent);
     }
-    
+
     // Draw user list
     float startY = 200;
     float buttonHeight = 60;
     float buttonSpacing = 10;
-    
+
     for (int i = 0; i < UserManager::MAX_USERS; i++) {
         const User* user = userManager->getUser(i);
         if (user && user->isValid) {
             float y = startY + i * (buttonHeight + buttonSpacing);
-            
+
             // Draw user button background
-            Rectangle buttonRect = {centerX - 200, y, 400, buttonHeight};
+            Rectangle buttonRect = {centerX - 220, y, 440, buttonHeight};
             Color buttonColor = currentTheme->secondary;
-            
+
             // Highlight current user
             if (currentUser == user) {
                 buttonColor = currentTheme->primary;
             }
-            
+
             DrawRectangleRec(buttonRect, buttonColor);
             DrawRectangleLinesEx(buttonRect, 2, currentTheme->accent);
-            
+
             // Draw username
-            DrawText(user->username, (int)(centerX - 180), (int)(y + 20), 20, currentTheme->text);
-            
-            // Draw stats
+            drawTextWithFont(user->username, (int)(centerX - 200), (int)(y + 10), 20, currentTheme->text);
+
+            // Draw simple stats
             char statsText[64];
-            snprintf(statsText, sizeof(statsText), "High Score: %d", user->totalScore);
-            DrawText(statsText, (int)(centerX + 50), (int)(y + 20), 16, currentTheme->text);
-            
-            // Check for click
+            snprintf(statsText, sizeof(statsText), "Score: %d", user->totalScore);
+            drawTextWithFont(statsText, (int)(centerX + 100), (int)(y + 10), 14, currentTheme->text);
+
+            // Stats button (small button on right)
+            Rectangle statsButton = {centerX + 230, y + 35, 30, 20};
+            DrawRectangleRec(statsButton, {100, 100, 150, 200});
+            DrawRectangleLinesEx(statsButton, 1, currentTheme->accent);
+            drawTextWithFont("?", (int)(statsButton.x + 8), (int)(statsButton.y + 2), 14, WHITE);
+
+            // Delete button (small red X button)
+            if (currentUser != user) {  // Can't delete current user
+                Rectangle deleteButton = {centerX + 230, y + 5, 20, 20};
+                DrawRectangleRec(deleteButton, {200, 50, 50, 200});
+                DrawRectangleLinesEx(deleteButton, 1, {255, 100, 100, 255});
+                drawTextWithFont("X", (int)(deleteButton.x + 5), (int)(deleteButton.y + 2), 16, WHITE);
+            }
+
+            // Check for click on user button
             int touchCount = GetTouchPointCount();
-            Vector2 pos = touchCount > 0 ? GetTouchPosition(0) : GetMousePosition();
-            
-            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) || touchCount == 0) {
-                if (CheckCollisionPointRec(pos, buttonRect)) {
-                    userSelection = i;
+            for (int t = 0; t < touchCount; t++) {
+                Vector2 pos = GetTouchPosition(t);
+
+                if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) || t == touchCount - 1) {
+                    // Check user button click
+                    if (CheckCollisionPointRec(pos, buttonRect)) {
+                        userSelection = i;
+                    }
+                    // Check stats button click
+                    if (CheckCollisionPointRec(pos, statsButton)) {
+                        userSelection = i + 100;  // Offset to distinguish stats view
+                    }
+                    // Check delete button click
+                    if (currentUser != user && CheckCollisionPointRec(pos, deleteButton)) {
+                        userToDelete = i;
+                        deleteUserConfirm = 0;  // Show delete confirmation
+                    }
                 }
             }
         }
     }
-    
+
+    // Handle delete confirmation
+    if (deleteUserConfirm >= 0 && userToDelete >= 0) {
+        drawDeleteConfirm(userManager, userToDelete);
+        return;
+    }
+
+    // Handle user stats view
+    if (userSelection >= 100) {
+        int userIndex = userSelection - 100;
+        drawUserStats(userManager, userIndex);
+        return;
+    }
+
     // Draw Create New User button
     float createY = startY + UserManager::MAX_USERS * (buttonHeight + buttonSpacing) + 20;
     if (drawButton(centerX - 100, createY, 200, 60,
                     getText("Create User", "创建用户"))) {
         userMenuSelection = 1;  // Create
     }
-    
+
     // Draw Back button
     float backY = createY + 80;
     if (drawButton(centerX - 100, backY, 200, 60,
@@ -1051,6 +1131,140 @@ void UIManager::drawNameInput(const char* nameBuffer) {
     if (drawButton((float)(SCREEN_WIDTH / 2) - 100, backY, 200.0f, 50.0f,
                    getText("BACK", "返回"))) {
         // Note: back button is handled in game.cpp updateNameInput()
+    }
+}
+
+void UIManager::drawUserStats(const UserManager* userManager, int userIndex) {
+    const User* user = userManager->getUser(userIndex);
+    if (!user || !user->isValid) return;
+
+    // Dark overlay background
+    drawMenuBackground();
+
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float startY = 120.0f;
+    float spacing = 40.0f;
+
+    // Title
+    char titleText[128];
+    snprintf(titleText, sizeof(titleText), "%s - %s",
+             getText("User Stats", "用户统计"), user->username);
+    int titleWidth = measureTextWithFont(titleText, 32);
+    drawTextWithFont(titleText, centerX - titleWidth / 2, startY, 32, currentTheme->accent);
+
+    // Stats display
+    int y = (int)(startY + spacing);
+
+    // Username
+    drawTextWithFont(getText("Username:", "用户名:"), centerX - 200, (float)y, 18, currentTheme->text);
+    drawTextWithFont(user->username, centerX, (float)y, 24, WHITE);
+    y += 35;
+
+    // Total Games
+    char gamesText[64];
+    snprintf(gamesText, sizeof(gamesText), "%s: %d",
+             getText("Total Games", "总游戏数"), user->totalGamesPlayed);
+    drawTextWithFont(gamesText, centerX - 200, (float)y, 18, currentTheme->text);
+    y += 35;
+
+    // Total Score
+    char scoreText[64];
+    snprintf(scoreText, sizeof(scoreText), "%s: %d",
+             getText("Total Score", "总分"), user->totalScore);
+    drawTextWithFont(scoreText, centerX - 200, (float)y, 18, currentTheme->text);
+    y += 35;
+
+    // Play Time
+    char timeText[64];
+    int hours = (int)(user->totalPlayTime / 3600.0f);
+    int minutes = (int)((user->totalPlayTime - hours * 3600) / 60.0f);
+    snprintf(timeText, sizeof(timeText), "%s: %dh %dm",
+             getText("Play Time", "游戏时长"), hours, minutes);
+    drawTextWithFont(timeText, centerX - 200, (float)y, 18, currentTheme->text);
+    y += 35;
+
+    // Endless Mode Stats
+    char endlessText[128];
+    snprintf(endlessText, sizeof(endlessText),
+             "%s: %d (%d %s)",
+             getText("Endless", "无尽模式"),
+             user->endlessStats.highScore,
+             user->endlessStats.gamesPlayed,
+             getText("games", "局"));
+    drawTextWithFont(endlessText, centerX - 200, (float)y, 16, currentTheme->text);
+    y += 30;
+
+    // Level Mode Stats
+    char levelText[128];
+    snprintf(levelText, sizeof(levelText),
+             "%s: %d (%d %s, L%d)",
+             getText("Level Mode", "关卡模式"),
+             user->levelStats.highScore,
+             user->levelStats.gamesPlayed,
+             user->maxLevelUnlocked,
+             getText("games", "局"));
+    drawTextWithFont(levelText, centerX - 200, (float)y, 16, currentTheme->text);
+    y += 30;
+
+    // Time Challenge Stats
+    char timeText2[128];
+    snprintf(timeText2, sizeof(timeText2),
+             "%s: %d (%d %s)",
+             getText("Time Challenge", "时间挑战"),
+             user->timeChallengeStats.highScore,
+             user->timeChallengeStats.gamesPlayed);
+    drawTextWithFont(timeText2, centerX - 200, (float)y, 16, currentTheme->text);
+    y += 40;
+
+    // Back button
+    if (drawButton(centerX - 100, (float)y, 200.0f, 50.0f,
+                   getText("BACK", "返回"))) {
+        // Handled in game.cpp
+    }
+}
+
+void UIManager::drawDeleteConfirm(const UserManager* userManager, int userIndex) {
+    const User* user = userManager->getUser(userIndex);
+    if (!user || !user->isValid) return;
+
+    // Dark overlay background
+    drawMenuBackground();
+
+    float centerX = SCREEN_WIDTH / 2.0f;
+    float centerY = SCREEN_HEIGHT / 2.0f;
+
+    // Title
+    const char* title = getText("DELETE USER", "删除用户");
+    int titleWidth = measureTextWithFont(title, 32);
+    drawTextWithFont(title, centerX - titleWidth / 2, 150, 32, {255, 100, 100, 255});
+
+    // Confirmation message
+    char msgText[128];
+    snprintf(msgText, sizeof(msgText),
+             getText("Are you sure you want to delete user:", "确定要删除用户吗?"));
+    int msgWidth = measureTextWithFont(msgText, 20);
+    drawTextWithFont(msgText, centerX - msgWidth / 2, 220, 20, currentTheme->text);
+
+    // Username
+    char nameText[128];
+    snprintf(nameText, sizeof(nameText), "\"%s\"", user->username);
+    int nameWidth = measureTextWithFont(nameText, 28);
+    drawTextWithFont(nameText, centerX - nameWidth / 2, 260, 28, currentTheme->accent);
+
+    // Buttons
+    float buttonY = 350.0f;
+
+    // Confirm button (red)
+    if (drawButton(centerX - 110, buttonY, 200.0f, 50.0f,
+                   getText("DELETE", "删除"))) {
+        deleteUserConfirm = 1;  // Confirm delete
+    }
+
+    // Cancel button
+    if (drawButton(centerX + 110, buttonY, 200.0f, 50.0f,
+                   getText("CANCEL", "取消"))) {
+        deleteUserConfirm = -1;  // Cancel
+        userToDelete = -1;
     }
 }
 
