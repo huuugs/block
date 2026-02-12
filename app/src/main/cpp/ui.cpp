@@ -1035,27 +1035,56 @@ void UIManager::drawUserMenu(const UserManager* userManager) {
                 drawTextWithFont("X", (int)(deleteButton.x + 5), (int)(deleteButton.y + 2), 16, WHITE);
             }
 
-            // Check for click on user button
+            // Check for click - FIXED: Use proper touch release detection
             int touchCount = GetTouchPointCount();
-            for (int t = 0; t < touchCount; t++) {
-                Vector2 pos = GetTouchPosition(t);
+            bool wasClicked = false;
 
-                if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT) || t == touchCount - 1) {
+            // Check mouse click (for desktop testing)
+            if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                // Check user button click
+                if (CheckCollisionPointRec(GetMousePosition(), buttonRect)) {
+                    userSelection = i;
+                    wasClicked = true;
+                }
+                // Check stats button click
+                if (CheckCollisionPointRec(GetMousePosition(), statsButton)) {
+                    userSelection = i + 100;  // Offset to distinguish stats view
+                    wasClicked = true;
+                }
+                // Check delete button click
+                if (currentUser != user && CheckCollisionPointRec(GetMousePosition(), deleteButton)) {
+                    userToDelete = i;
+                    deleteUserConfirm = 0;  // Show delete confirmation
+                    wasClicked = true;
+                }
+            }
+
+            // Check touch clicks (for Android)
+            if (touchCount > 0 && !wasClicked) {
+                for (int t = 0; t < touchCount; t++) {
+                    Vector2 pos = GetTouchPosition(t);
+
                     // Check user button click
                     if (CheckCollisionPointRec(pos, buttonRect)) {
                         userSelection = i;
+                        break;  // Only handle one button
                     }
+
                     // Check stats button click
                     if (CheckCollisionPointRec(pos, statsButton)) {
                         userSelection = i + 100;  // Offset to distinguish stats view
+                        break;
                     }
+
                     // Check delete button click
                     if (currentUser != user && CheckCollisionPointRec(pos, deleteButton)) {
                         userToDelete = i;
                         deleteUserConfirm = 0;  // Show delete confirmation
+                        break;
                     }
                 }
             }
+        }
         }
     }
 

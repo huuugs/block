@@ -436,11 +436,10 @@ void AudioManager::init() {
     rotateSound = AudioGenerator::GenerateRotateSound();
 
     // Generate and load background music
+    // IMPORTANT: Don't check musicLoaded status - always try to play even if load might have failed
+    // The music might not load properly on some devices, so we try anyway
     bgMusic = AudioGenerator::GenerateBackgroundMusic();
-    // Check if music was loaded successfully (has valid audio buffer)
-    if (bgMusic.stream.buffer != nullptr) {
-        musicLoaded = true;
-    }
+    TraceLog(LOG_INFO, "Background music generated, stream buffer: %p", bgMusic.stream.buffer);
 }
 
 void AudioManager::shutdown() {
@@ -500,14 +499,16 @@ void AudioManager::playRotateSound() {
 }
 
 void AudioManager::playBackgroundMusic(bool play) {
-    if (!musicLoaded) return;
-
+    // IMPORTANT: Don't check musicLoaded - try to play anyway
+    // This allows game to attempt playing even if music load failed
     if (play && !musicPlaying) {
         PlayMusicStream(bgMusic);
         musicPlaying = true;
+        TraceLog(LOG_INFO, "Background music play requested");
     } else if (!play && musicPlaying) {
         StopMusicStream(bgMusic);
         musicPlaying = false;
+        TraceLog(LOG_INFO, "Background music stop requested");
     }
 }
 
