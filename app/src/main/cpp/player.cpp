@@ -32,8 +32,9 @@ Player::~Player() {
 }
 
 void Player::updateStatsForSize() {
-    // Mass proportional to volume: m = density * size^3
-    mass = DENSITY * size * size * size;
+    // FIX: Mass proportional to AREA (size^2) not volume (size^3) for 2D game
+    // This prevents mass from growing too fast and making movement impossible
+    mass = DENSITY * size * size;
     if (mass < 1.0f) mass = 1.0f;
     
     // Max kinetic energy based on mass and max speed
