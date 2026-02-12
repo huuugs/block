@@ -110,6 +110,9 @@ public:
     // Text translation helper
     const char* getText(const char* english, const char* chinese) const;
 
+    // User management
+    void setUserManager(const UserManager* um) { userManager = um; }
+
     // Menu handling with proper isolation
     MenuPanel getCurrentPanel() const { return currentPanel; }
     void setCurrentPanel(MenuPanel panel);
@@ -238,6 +241,9 @@ private:
     Font* mainFont;
     Font* secondaryFont;
     bool useCustomFont;
+
+    // User manager reference
+    const UserManager* userManager;
 
     // Helper functions
     void drawPixelButton(int x, int y, int width, int height, const char* text, bool hovered, bool pressed);

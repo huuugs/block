@@ -80,6 +80,9 @@ void Game::init() {
     userManager = new UserManager();
     userManager->init();
 
+    // Set user manager for UI access
+    ui->setUserManager(userManager);
+
     // Initialize mode manager
     modeManager = new GameModeManager();
     modeManager->init(mode);
@@ -754,7 +757,7 @@ void Game::drawGameOver() {
 }
 
 void Game::drawLevelSelect() {
-    ui->drawLevelSelect(userManager);
+    ui->draw(state, mode);
 }
 
 void Game::startGame(GameMode newMode) {
@@ -1245,8 +1248,7 @@ void Game::updateUserMenu() {
 }
 
 void Game::drawUserMenu() {
-    // Draw user menu UI
-    ui->drawUserMenu(userManager);
+    ui->draw(state, mode);
 }
 
 void Game::updateNameInput() {

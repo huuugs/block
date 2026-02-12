@@ -49,9 +49,12 @@ UIManager::UIManager()
     , userMenuSelection(-1)
     , userSelection(-1)
     , selectedLevel(-1)
+    , deleteUserConfirm(-1)
+    , userToDelete(-1)
     , mainFont(nullptr)
     , secondaryFont(nullptr)
     , useCustomFont(false)
+    , userManager(nullptr)
     , primaryColor{100, 200, 255, 255}      // Will be synced from theme in init()
     , secondaryColor{50, 100, 150, 255}    // Will be synced from theme in init()
     , accentColor{255, 200, 50, 255}       // Will be synced from theme in init()
@@ -257,7 +260,7 @@ void UIManager::draw(GameState state, GameMode mode) {
             drawGameOverMenu(0, 1);
             break;
         case GameState::LEVEL_SELECT:
-            drawLevelSelect();
+            drawLevelSelect(userManager);
             break;
         case GameState::SETTINGS:
             drawSettings();
