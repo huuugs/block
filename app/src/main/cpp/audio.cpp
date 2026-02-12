@@ -194,21 +194,19 @@ Music AudioGenerator::GenerateBackgroundMusic() {
     int sampleRate = 44100;
     float duration = 32.0f;  // 32 seconds looping
     int samples = (int)(sampleRate * duration);
-    short* buffer = new short[samples];
+
+    // Calculate data size (16-bit = 2 bytes per sample, mono = 1 channel)
+    int dataSize = samples * 2;
+    unsigned char* dataBuffer = new unsigned char[dataSize];
 
     // Space music notes - ambient, atmospheric
     // Using a pentatonic scale for spacey feel: C4, D4, E4, G4, A4
     int baseNotes[] = {262, 294, 330, 392, 440};  // C4, D4, E4, G4, A4
     int bassNotes[] = {131, 147, 165, 196, 220};   // C3, D3, E3, G3, A3 (octave down)
 
-    float time = 0.0f;
-    int melodyIndex = 0;
-    int bassIndex = 0;
-
     // Music structure: 8 measures, 4 beats each
     const float BEAT_DURATION = 0.5f;  // 120 BPM
     const int BEATS_PER_PHRASE = 16;
-    int currentBeat = 0;
 
     for (int i = 0; i < samples; i++) {
         float t = (float)i / sampleRate;
@@ -226,11 +224,8 @@ Music AudioGenerator::GenerateBackgroundMusic() {
         float melodyEnvelope = 0.15f + 0.05f * sinf(t * 2.0f);
 
         // Square wave for melody (8-bit sound)
-        float melodyWave = (sinf(2.0f * PI * melodyFreq * t) > 0) ? 1.0f : -1.0f;
-
-        // Add subtle vibrato to melody
         float vibrato = 1.0f + 0.02f * sinf(t * 8.0f);
-        melodyWave = (sinf(2.0f * PI * melodyFreq * vibrato * t) > 0) ? 1.0f : -1.0f;
+        float melodyWave = (sinf(2.0f * PI * melodyFreq * vibrato * t) > 0) ? 1.0f : -1.0f;
 
         // Bass pattern: slower, deeper notes
         int bassPattern[] = {0, 0, 4, 4, 0, 3, 2, 2, 0, 0, 4, 4, 2, 1, 0, 0};
@@ -249,30 +244,19 @@ Music AudioGenerator::GenerateBackgroundMusic() {
                        sinf(2.0f * PI * padFreq * 2.0f * t) * 0.02f;
 
         // Arpeggiator effect on beats
-        float arpFreq = 523.0f;  // C5
         float arpWave = 0;
         if (beatInPhrase % 2 == 0) {
+            float arpFreq = 523.0f;  // C5
             float arpData = fmodf(t * 8.0f, 1.0f);
             arpWave = (sinf(2.0f * PI * arpFreq * t) > 0) ? 1.0f : -1.0f;
             arpWave *= 0.03f * (1.0f - arpData);  // Quick decay
-        }
-
-        // Space whoosh effect (filter sweep) every 8 beats
-        float whoosh = 0;
-        if (beatInPhrase == 0) {
-            float whooshPhase = fmodf(t, 4.0f);  // 4 second whoosh
-            if (whooshPhase < 0.5f) {
-                float whooshFreq = 200.0f + whooshPhase * 400.0f;
-                whoosh = sinf(2.0f * PI * whooshFreq * t) * 0.02f * (1.0f - whooshPhase * 2.0f);
-            }
         }
 
         // Mix all layers
         sample = melodyWave * melodyEnvelope +
                  bassWave * bassEnvelope +
                  padWave +
-                 arpWave +
-                 whoosh;
+                 arpWave;
 
         // Apply overall song envelope (fade in/out at ends)
         float songEnvelope = 1.0f;
@@ -285,19 +269,19 @@ Music AudioGenerator::GenerateBackgroundMusic() {
         // Master volume reduction
         sample *= songEnvelope * 0.25f;
 
-        // Convert to 16-bit
-        buffer[i] = (short)(sample * 32767.0f);
+        // Convert to 16-bit PCM and store in little-endian format
+        short sample16 = (short)(sample * 32767.0f);
+        dataBuffer[i * 2] = sample16 & 0xFF;           // Low byte
+        dataBuffer[i * 2 + 1] = (sample16 >> 8) & 0xFF;  // High byte
     }
 
-    Wave wave = {
-        .frameCount = static_cast<unsigned int>(samples),
-        .sampleRate = static_cast<unsigned int>(sampleRate),
-        .sampleSize = 16,
-        .channels = 1,
-        .data = buffer
-    };
+    // Load music from memory buffer
+    Music music = LoadMusicStreamFromMemory(dataBuffer, dataSize);
 
-    return LoadMusicStreamFromWave(wave);
+    // Clean up the data buffer (raylib makes its own copy)
+    delete[] dataBuffer;
+
+    return music;
 }
 
 // Shoot sound - high pitch laser
